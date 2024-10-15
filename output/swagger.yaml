@@ -1,0 +1,4815 @@
+openapi: 3.0.0
+info:
+  title: clusters_mgmt
+  contact:
+    name: OCM Feedback
+    email: ocm-feedback@redhat.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0
+  version: v1
+servers:
+- url: https://api.openshift.com
+  description: Production
+- url: https://api.stage.openshift.com
+  description: Stage
+security:
+- bearer: []
+paths:
+  /api/clusters_mgmt/v1/clusters:
+    post:
+      description: |-
+        Provision a new cluster and add it to the collection of clusters.
+
+        See the `register_cluster` method for adding an existing cluster.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Cluster'
+      responses:
+        "201":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cluster'
+        default:
+          description: Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Metadata:
+      properties:
+        server_version:
+          type: string
+          description: Version of the server.
+      description: Version metadata.
+    AMIOverride:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'AMIOverride' if
+            this is a complete object or 'AMIOverrideLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        ami:
+          type: string
+          description: AMI is the id of the Amazon Machine Image.
+        product:
+          $ref: '#/components/schemas/Product'
+        region:
+          $ref: '#/components/schemas/CloudRegion'
+      description: AMIOverride specifies what Amazon Machine Image should be used
+        for a particular product and region.
+    AWS:
+      properties:
+        kms_key_arn:
+          type: string
+          description: Customer Managed Key to encrypt EBS Volume
+        sts:
+          $ref: '#/components/schemas/STS'
+        access_key_id:
+          type: string
+          description: AWS access key identifier.
+        account_id:
+          type: string
+          description: AWS account identifier.
+        additional_allowed_principals:
+          type: array
+          description: Additional allowed principal ARNs to be added to the hosted
+            control plane's VPC Endpoint Service.
+          items:
+            type: string
+        additional_compute_security_group_ids:
+          type: array
+          description: Additional AWS Security Groups to be added to default worker
+            (compute) machine pool.
+          items:
+            type: string
+        additional_control_plane_security_group_ids:
+          type: array
+          description: Additional AWS Security Groups to be added to default control
+            plane machine pool.
+          items:
+            type: string
+        additional_infra_security_group_ids:
+          type: array
+          description: Additional AWS Security Groups to be added to default infra
+            machine pool.
+          items:
+            type: string
+        audit_log:
+          $ref: '#/components/schemas/AuditLog'
+        billing_account_id:
+          type: string
+          description: BillingAccountID is the account used for billing subscriptions
+            purchased via the marketplace
+        ec2_metadata_http_tokens:
+          $ref: '#/components/schemas/Ec2MetadataHttpTokens'
+        etcd_encryption:
+          $ref: '#/components/schemas/AwsEtcdEncryption'
+        private_hosted_zone_id:
+          type: string
+          description: ID of private hosted zone.
+        private_hosted_zone_role_arn:
+          type: string
+          description: Role ARN for private hosted zone.
+        private_link:
+          type: boolean
+          description: Sets cluster to be inaccessible externally.
+        private_link_configuration:
+          $ref: '#/components/schemas/PrivateLinkClusterConfiguration'
+        secret_access_key:
+          type: string
+          description: AWS secret access key.
+        subnet_ids:
+          type: array
+          description: The subnet ids to be used when installing the cluster.
+          items:
+            type: string
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional keys and values that the installer will add as tags
+            to all AWS resources it creates
+      description: _Amazon Web Services_ specific settings of a cluster.
+    AWSFlavour:
+      properties:
+        compute_instance_type:
+          type: string
+          description: |-
+            AWS default instance type for the worker volume.
+
+            User can be overridden specifying in the cluster itself a type for compute node.
+        infra_instance_type:
+          type: string
+          description: AWS default instance type for the infra volume.
+        infra_volume:
+          $ref: '#/components/schemas/AWSVolume'
+        master_instance_type:
+          type: string
+          description: AWS default instance type for the master volume.
+        master_volume:
+          $ref: '#/components/schemas/AWSVolume'
+        worker_volume:
+          $ref: '#/components/schemas/AWSVolume'
+      description: Specification for different classes of nodes inside a flavour.
+    AWSInfrastructureAccessRole:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'AWSInfrastructureAccessRole'
+            if this is a complete object or 'AWSInfrastructureAccessRoleLink' if it
+            is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        description:
+          type: string
+          description: Description of the role.
+        display_name:
+          type: string
+          description: "Human friendly identifier of the role, for example `Read only`."
+        state:
+          $ref: '#/components/schemas/AWSInfrastructureAccessRoleState'
+      description: A set of acces permissions for AWS resources
+    AWSInfrastructureAccessRoleGrant:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'AWSInfrastructureAccessRoleGrant'
+            if this is a complete object or 'AWSInfrastructureAccessRoleGrantLink'
+            if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        console_url:
+          type: string
+          description: URL to switch to the role in AWS console.
+        role:
+          $ref: '#/components/schemas/AWSInfrastructureAccessRole'
+        state:
+          $ref: '#/components/schemas/AWSInfrastructureAccessRoleGrantState'
+        state_description:
+          type: string
+          description: |-
+            Description of the state.
+            Will be empty unless state is 'Failed'.
+        user_arn:
+          type: string
+          description: The user AWS IAM ARN we want to grant the role.
+      description: Representation of an AWS infrastructure access role grant.
+    AWSInfrastructureAccessRoleGrantState:
+      type: string
+      description: State of an AWS infrastructure access role grant.
+      enum:
+      - deleting
+      - failed
+      - pending
+      - ready
+      - removed
+    AWSInfrastructureAccessRoleState:
+      type: string
+      description: State of an AWS infrastructure access role.
+      enum:
+      - invalid
+      - removed
+      - valid
+    AWSMachinePool:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'AWSMachinePool'
+            if this is a complete object or 'AWSMachinePoolLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        additional_security_group_ids:
+          type: array
+          description: Additional AWS Security Groups to be added machine pool. Note
+            that machine pools can only be worker node at the time.
+          items:
+            type: string
+        availability_zone_types:
+          type: object
+          additionalProperties:
+            type: string
+          description: "Associates nodepool availability zones with zone types (e.g.\
+            \ wavelength, local)."
+        spot_market_options:
+          $ref: '#/components/schemas/AWSSpotMarketOptions'
+        subnet_outposts:
+          type: object
+          additionalProperties:
+            type: string
+          description: Associates nodepool subnets with AWS Outposts.
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Optional keys and values that the machine pool provisioner will add as AWS tags to all AWS resources it creates.
+
+            AWS tags must conform to the following standards:
+            - Each resource may have a maximum of 25 tags
+            - Tags beginning with "aws:" are reserved for system use and may not be set
+            - Tag keys may be between 1 and 128 characters in length
+            - Tag values may be between 0 and 256 characters in length
+            - Tags may only contain letters, numbers, spaces, and the following characters: [_ . : / = + - @]
+      description: Representation of aws machine pool specific parameters.
+    AWSNodePool:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'AWSNodePool' if
+            this is a complete object or 'AWSNodePoolLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        additional_security_group_ids:
+          type: array
+          description: Additional AWS Security Groups to be added node pool.
+          items:
+            type: string
+        availability_zone_types:
+          type: object
+          additionalProperties:
+            type: string
+          description: "Associates nodepool availability zones with zone types (e.g.\
+            \ wavelength, local)."
+        ec2_metadata_http_tokens:
+          $ref: '#/components/schemas/Ec2MetadataHttpTokens'
+        instance_profile:
+          type: string
+          description: "InstanceProfile is the AWS EC2 instance profile, which is\
+            \ a container for an IAM role that the EC2 instance uses."
+        instance_type:
+          type: string
+          description: InstanceType is an ec2 instance type for node instances (e.g.
+            m5.large).
+        root_volume:
+          $ref: '#/components/schemas/AWSVolume'
+        subnet_outposts:
+          type: object
+          additionalProperties:
+            type: string
+          description: Associates nodepool subnets with AWS Outposts.
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Optional keys and values that the installer will add as tags to all AWS resources it creates.
+
+            AWS tags must conform to the following standards:
+            - Each resource may have a maximum of 25 tags
+            - Tags beginning with "aws:" are reserved for system use and may not be set
+            - Tag keys may be between 1 and 128 characters in length
+            - Tag values may be between 0 and 256 characters in length
+            - Tags may only contain letters, numbers, spaces, and the following characters: [_ . : / = + - @]
+      description: Representation of aws node pool specific parameters.
+    AWSSpotMarketOptions:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'AWSSpotMarketOptions'
+            if this is a complete object or 'AWSSpotMarketOptionsLink' if it is just
+            a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        max_price:
+          type: number
+          description: |-
+            The max price for spot instance. Optional.
+            If not set, use the on-demand price.
+          format: float
+      description: Spot market options for AWS machine pool.
+    AWSVolume:
+      properties:
+        iops:
+          type: integer
+          description: Volume provisioned IOPS.
+          format: int32
+        size:
+          type: integer
+          description: Volume size in Gib.
+          format: int32
+      description: Holds settings for an AWS storage volume.
+    AWSSTSAccountRole:
+      properties:
+        items:
+          type: array
+          description: The list of STS Roles for this Account Role
+          items:
+            $ref: '#/components/schemas/AWSSTSRole'
+        prefix:
+          type: string
+          description: The Prefix for this Account Role
+      description: Representation of an sts account role for a rosa cluster
+    AWSSTSPolicy:
+      properties:
+        arn:
+          type: string
+          description: The ARN of the managed policy
+        id:
+          type: string
+          description: Policy ID
+        details:
+          type: string
+          description: Policy Details
+        type:
+          type: string
+          description: Type of policy operator/account role
+      description: Representation of an sts policies for rosa cluster
+    AWSSTSRole:
+      properties:
+        hcpManagedPolicies:
+          type: boolean
+          description: Does this Role have HCP Managed Policies?
+        isAdmin:
+          type: boolean
+          description: Does this role have Admin permission?
+        managedPolicies:
+          type: boolean
+          description: Does this Role have Managed Policies?
+        arn:
+          type: string
+          description: The AWS ARN for this Role
+        type:
+          type: string
+          description: The type of this Role
+        roleVersion:
+          type: string
+          description: The Openshift Version for this Role
+      description: Representation of an sts role for a rosa cluster
+    CCS:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'CCS' if this is
+            a complete object or 'CCSLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        disable_scp_checks:
+          type: boolean
+          description: |-
+            Indicates if cloud permissions checks are disabled,
+            when attempting installation of the cluster.
+        enabled:
+          type: boolean
+          description: Indicates if Customer Cloud Subscription is enabled on the
+            cluster.
+    CPUTotalNodeRoleOSMetricNode:
+      properties:
+        cpu_total:
+          type: number
+          description: The total CPU capacity of nodes with this set of roles and
+            operating system.
+          format: float
+        node_roles:
+          type: array
+          description: Representation of the node role for a cluster.
+          items:
+            type: string
+        operating_system:
+          type: string
+          description: The operating system.
+        time:
+          type: string
+          format: date-time
+      description: Representation of information from telemetry about a the CPU capacity
+        by node role and OS.
+    CPUTotalsNodeRoleOSMetricNode:
+      properties:
+        cpu_totals:
+          type: array
+          items:
+            $ref: '#/components/schemas/CPUTotalNodeRoleOSMetricNode'
+      description: |-
+        Representation of information from telemetry about the CPU capacity by node
+        role and OS of a cluster.
+    DNS:
+      properties:
+        base_domain:
+          type: string
+          description: |-
+            Base DNS domain of the cluster.
+
+            During the installation of the cluster it is necessary to create multiple DNS records.
+            They will be created as sub-domains of this domain. For example, if the domain_prefix of the
+            cluster is `mycluster` and the base domain is `example.com` then the following DNS
+            records will be created:
+
+            ```
+            mycluster-api.example.com
+            mycluster-etcd-0.example.com
+            mycluster-etcd-1.example.com
+            mycluster-etcd-3.example.com
+            ```
+
+            The exact number, type and names of the created DNS record depends on the characteristics
+            of the cluster, and may be different for different versions of _OpenShift_. Please don't
+            rely on them. For example, to find what is the URL of the Kubernetes API server of the
+            cluster don't assume that it will be `mycluster-api.example.com`. Instead of that use
+            this API to retrieve the description of the cluster, and get it from the `api.url`
+            attribute. For example, if the identifier of the cluster is `123` send a request like
+            this:
+
+            ```http
+            GET /api/clusters_mgmt/v1/clusters/123 HTTP/1.1
+            ```
+
+            That will return a response like this, including the `api.url` attribute:
+
+            ```json
+            {
+                "kind": "Cluster",
+                "id": "123",
+                "href": "/api/clusters_mgmt/v1/clusters/123",
+                    "api": {
+                    "url": "https://mycluster-api.example.com:6443"
+                },
+                ...
+            }
+            ```
+
+            When the cluster is created in Amazon Web Services it is necessary to create this base
+            DNS domain in advance, using AWS Route53 (https://console.aws.amazon.com/route53).
+      description: DNS settings of the cluster.
+    DNSDomain:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'DNSDomain' if this
+            is a complete object or 'DNSDomainLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        cluster:
+          $ref: '#/components/schemas/ClusterLink'
+        organization:
+          $ref: '#/components/schemas/OrganizationLink'
+        reserved_at_timestamp:
+          type: string
+          description: Date and time when the DNS domain was reserved.
+          format: date-time
+        user_defined:
+          type: boolean
+          description: Indicates if this dns domain is user defined.
+      description: Contains the properties of a DNS domain.
+    GCP:
+      properties:
+        auth_uri:
+          type: string
+          description: GCP authentication uri
+        auth_provider_x509_cert_url:
+          type: string
+          description: GCP Authentication provider x509 certificate url
+        authentication:
+          $ref: '#/components/schemas/GcpAuthentication'
+        client_id:
+          type: string
+          description: GCP client identifier
+        client_x509_cert_url:
+          type: string
+          description: GCP client x509 certificate url
+        client_email:
+          type: string
+          description: GCP client email
+        private_key:
+          type: string
+          description: GCP private key
+        private_key_id:
+          type: string
+          description: GCP private key identifier
+        project_id:
+          type: string
+          description: GCP project identifier.
+        security:
+          $ref: '#/components/schemas/GcpSecurity'
+        token_uri:
+          type: string
+          description: GCP token uri
+        type:
+          type: string
+          description: GCP the type of the service the key belongs to
+      description: Google cloud platform settings of a cluster.
+      deprecated: true
+    GCPEncryptionKey:
+      properties:
+        kms_key_service_account:
+          type: string
+          description: Service account used to access the KMS key
+        key_location:
+          type: string
+          description: Location of the encryption key ring
+        key_name:
+          type: string
+          description: Name of the encryption key
+        key_ring:
+          type: string
+          description: Name of the key ring the encryption key is located on
+      description: GCP Encryption Key for CCS clusters.
+    GCPFlavour:
+      properties:
+        compute_instance_type:
+          type: string
+          description: |-
+            GCP default instance type for the worker volume.
+
+            User can be overridden specifying in the cluster itself a type for compute node.
+        infra_instance_type:
+          type: string
+          description: GCP default instance type for the infra volume.
+        infra_volume:
+          $ref: '#/components/schemas/GCPVolume'
+        master_instance_type:
+          type: string
+          description: GCP default instance type for the master volume.
+        master_volume:
+          $ref: '#/components/schemas/GCPVolume'
+        worker_volume:
+          $ref: '#/components/schemas/GCPVolume'
+      description: Specification for different classes of nodes inside a flavour.
+    GCPImageOverride:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'GCPImageOverride'
+            if this is a complete object or 'GCPImageOverrideLink' if it is just a
+            link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        billing_model:
+          $ref: '#/components/schemas/BillingModelItem'
+        image_id:
+          type: string
+          description: ImageID is the id of the Google Cloud Platform image.
+        product:
+          $ref: '#/components/schemas/Product'
+        project_id:
+          type: string
+          description: ProjectID is the id of the Google Cloud Platform project that
+            hosts the image.
+      description: GcpImageOverride specifies what a GCP VM Image should be used for
+        a particular product and billing model
+    GCPNetwork:
+      properties:
+        vpc_name:
+          type: string
+          description: VPC mame used by the cluster.
+        vpc_project_id:
+          type: string
+          description: The name of the host project where the shared VPC exists.
+        compute_subnet:
+          type: string
+          description: Compute subnet used by the cluster.
+        control_plane_subnet:
+          type: string
+          description: Control plane subnet used by the cluster.
+      description: GCP Network configuration of a cluster.
+    GCPVolume:
+      properties:
+        size:
+          type: integer
+          description: Volume size in Gib.
+          format: int32
+      description: Holds settings for an GCP storage volume.
+    HTPasswdIdentityProvider:
+      properties:
+        password:
+          type: string
+          description: Password to be used in the _HTPasswd_ data file.
+        username:
+          type: string
+          description: Username to be used in the _HTPasswd_ data file.
+        users:
+          type: array
+          description: Link to the collection of _HTPasswd_ users.
+          items:
+            $ref: '#/components/schemas/HTPasswdUser'
+      description: Details for `htpasswd` identity providers.
+    HTPasswdUser:
+      properties:
+        id:
+          type: string
+          description: ID for a secondary user in the _HTPasswd_ data file.
+        hashed_password:
+          type: string
+          description: |-
+            HTPasswd Hashed Password for a user in the _HTPasswd_ data file.
+            The value of this field is set as-is in the _HTPasswd_ data file for the HTPasswd IDP
+        password:
+          type: string
+          description: |-
+            Password in plain-text for a  user in the _HTPasswd_ data file.
+            The value of this field is hashed before setting it in the  _HTPasswd_ data file for the HTPasswd IDP
+        username:
+          type: string
+          description: Username for a secondary user in the _HTPasswd_ data file.
+    LDAPAttributes:
+      properties:
+        id:
+          type: array
+          description: List of attributes to use as the identity.
+          items:
+            type: string
+        email:
+          type: array
+          description: List of attributes to use as the mail address.
+          items:
+            type: string
+        name:
+          type: array
+          description: List of attributes to use as the display name.
+          items:
+            type: string
+        preferred_username:
+          type: array
+          description: List of attributes to use as the preferred user name when provisioning
+            a user.
+          items:
+            type: string
+      description: LDAP attributes used to configure the LDAP identity provider.
+    LDAPIdentityProvider:
+      properties:
+        ca:
+          type: string
+          description: Certificate bundle to use to validate server certificates for
+            the configured URL.
+        url:
+          type: string
+          description: |-
+            An https://tools.ietf.org/html/rfc2255[RFC 2255] URL which specifies the LDAP host and
+            search parameters to use.
+        attributes:
+          $ref: '#/components/schemas/LDAPAttributes'
+        bind_dn:
+          type: string
+          description: Optional distinguished name to use to bind during the search
+            phase.
+        bind_password:
+          type: string
+          description: Optional password to use to bind during the search phase.
+        insecure:
+          type: boolean
+          description: |-
+            When `true` no TLS connection is made to the server. When `false` `ldaps://...` URLs
+            connect using TLS and `ldap://...` are upgraded to TLS.
+      description: Details for `ldap` identity providers.
+    STS:
+      properties:
+        oidc_endpoint_url:
+          type: string
+          description: URL of the location where OIDC configuration and keys are available
+        auto_mode:
+          type: boolean
+          description: Auto creation mode for cluster - OCM will create the operator
+            roles and OIDC provider. false by default.
+        enabled:
+          type: boolean
+          description: If STS is enabled or disabled
+        external_id:
+          type: string
+          description: Optional unique identifier when assuming role in another account
+        instance_iam_roles:
+          $ref: '#/components/schemas/InstanceIAMRoles'
+        managed_policies:
+          type: boolean
+          description: "If true, cluster account and operator roles have managed policies\
+            \ attached."
+        oidc_config:
+          $ref: '#/components/schemas/OidcConfig'
+        operator_iam_roles:
+          type: array
+          description: List of roles necessary to access the AWS resources of the
+            various operators used during installation
+          items:
+            $ref: '#/components/schemas/OperatorIAMRole'
+        operator_role_prefix:
+          type: string
+          description: Optional user provided prefix for operator roles.
+        permission_boundary:
+          type: string
+          description: Optional user provided permission boundary.
+        role_arn:
+          type: string
+          description: ARN of the AWS role to assume when installing the cluster
+        support_role_arn:
+          type: string
+          description: ARN of the AWS role used by SREs to access the cluster AWS
+            account in order to provide support
+      description: Contains the necessary attributes to support role-based authentication
+        on AWS.
+    STSCredentialRequest:
+      properties:
+        name:
+          type: string
+          description: Name of CredRequest
+        operator:
+          $ref: '#/components/schemas/STSOperator'
+      description: Representation of an credRequest
+    STSOperator:
+      properties:
+        max_version:
+          type: string
+          description: Maximum ocp version supported
+        min_version:
+          type: string
+          description: Minimum ocp version supported
+        name:
+          type: string
+          description: Operator Name
+        namespace:
+          type: string
+          description: Operator Namespace
+        service_accounts:
+          type: array
+          description: Service Accounts
+          items:
+            type: string
+      description: Representation of an sts operator
+    AddOn:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'AddOn' if this
+            is a complete object or 'AddOnLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        common_annotations:
+          type: object
+          additionalProperties:
+            type: string
+          description: Common annotations to be applied to all resources created by
+            this addon.
+        common_labels:
+          type: object
+          additionalProperties:
+            type: string
+          description: Common labels to be applied to all resources created by this
+            addon.
+        config:
+          $ref: '#/components/schemas/AddOnConfig'
+        credentials_requests:
+          type: array
+          description: List of credentials requests to authenticate operators to access
+            cloud resources.
+          items:
+            $ref: '#/components/schemas/CredentialRequest'
+        description:
+          type: string
+          description: Description of the add-on.
+        docs_link:
+          type: string
+          description: Link to documentation about the add-on.
+        enabled:
+          type: boolean
+          description: Indicates if this add-on can be added to clusters.
+        has_external_resources:
+          type: boolean
+          description: Indicates if this add-on has external resources associated
+            with it
+        hidden:
+          type: boolean
+          description: Indicates if this add-on is hidden.
+        icon:
+          type: string
+          description: Base64-encoded icon representing an add-on. The icon should
+            be in PNG format.
+        install_mode:
+          $ref: '#/components/schemas/AddOnInstallMode'
+        label:
+          type: string
+          description: Label used to attach to a cluster deployment when add-on is
+            installed.
+        managed_service:
+          type: boolean
+          description: Indicates if add-on is part of a managed service
+        name:
+          type: string
+          description: Name of the add-on.
+        namespaces:
+          type: array
+          description: Namespaces which are required by this addon.
+          items:
+            $ref: '#/components/schemas/AddOnNamespace'
+        operator_name:
+          type: string
+          description: The name of the operator installed by this add-on.
+        parameters:
+          type: array
+          description: List of parameters for this add-on.
+          items:
+            $ref: '#/components/schemas/AddOnParameter'
+        requirements:
+          type: array
+          description: List of requirements for this add-on.
+          items:
+            $ref: '#/components/schemas/AddOnRequirement'
+        resource_cost:
+          type: number
+          description: Used to determine how many units of quota an add-on consumes
+            per resource name.
+          format: float
+        resource_name:
+          type: string
+          description: Used to determine from where to reserve quota for this add-on.
+        sub_operators:
+          type: array
+          description: List of sub operators for this add-on.
+          items:
+            $ref: '#/components/schemas/AddOnSubOperator'
+        target_namespace:
+          type: string
+          description: The namespace in which the addon CRD exists.
+        version:
+          $ref: '#/components/schemas/AddOnVersion'
+      description: Representation of an add-on that can be installed in a cluster.
+    AddOnConfig:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'AddOnConfig' if
+            this is a complete object or 'AddOnConfigLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        add_on_environment_variables:
+          type: array
+          description: List of environment variables for the addon
+          items:
+            $ref: '#/components/schemas/AddOnEnvironmentVariable'
+        secret_propagations:
+          type: array
+          description: List of secret propagations for the addon
+          items:
+            $ref: '#/components/schemas/AddOnSecretPropagation'
+      description: |-
+        Representation of an add-on config.
+        The attributes under it are to be used by the addon once its installed in the cluster.
+    AddOnEnvironmentVariable:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'AddOnEnvironmentVariable'
+            if this is a complete object or 'AddOnEnvironmentVariableLink' if it is
+            just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        name:
+          type: string
+          description: Name of the env object.
+        value:
+          type: string
+          description: Value of the env object.
+      description: Representation of an add-on env object.
+    AddOnInstallMode:
+      type: string
+      description: Representation of an add-on InstallMode field.
+      enum:
+      - all_namespaces
+      - own_namespace
+    AddOnInstallation:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'AddOnInstallation'
+            if this is a complete object or 'AddOnInstallationLink' if it is just
+            a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        addon:
+          $ref: '#/components/schemas/AddOn'
+        addon_version:
+          $ref: '#/components/schemas/AddOnVersion'
+        billing:
+          $ref: '#/components/schemas/AddOnInstallationBilling'
+        creation_timestamp:
+          type: string
+          description: Date and time when the add-on was initially installed in the
+            cluster.
+          format: date-time
+        operator_version:
+          type: string
+          description: Version of the operator installed by the add-on.
+        parameters:
+          type: array
+          description: List of add-on parameters for this add-on installation.
+          items:
+            $ref: '#/components/schemas/AddOnInstallationParameter'
+        state:
+          $ref: '#/components/schemas/AddOnInstallationState'
+        state_description:
+          type: string
+          description: Reason for the current State.
+        updated_timestamp:
+          type: string
+          description: Date and time when the add-on installation information was
+            last updated.
+          format: date-time
+      description: Representation of an add-on installation in a cluster.
+    AddOnInstallationBilling:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'AddOnInstallationBilling'
+            if this is a complete object or 'AddOnInstallationBillingLink' if it is
+            just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        billing_marketplace_account:
+          type: string
+          description: Account ID for billing market place
+        billing_model:
+          $ref: '#/components/schemas/BillingModel'
+      description: Representation of an add-on installation billing.
+    AddOnInstallationParameter:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'AddOnInstallationParameter'
+            if this is a complete object or 'AddOnInstallationParameterLink' if it
+            is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        value:
+          type: string
+          description: Value of the parameter.
+      description: Representation of an add-on installation parameter.
+    AddOnInstallationState:
+      type: string
+      description: Representation of an add-on installation State field.
+      enum:
+      - deleting
+      - failed
+      - installing
+      - pending
+      - ready
+    AddOnNamespace:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'AddOnNamespace'
+            if this is a complete object or 'AddOnNamespaceLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+          description: Annotations to be applied to this namespace.
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          description: Labels to be applied to this namespace.
+        name:
+          type: string
+          description: Name of the namespace.
+    AddOnParameter:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'AddOnParameter'
+            if this is a complete object or 'AddOnParameterLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        addon:
+          $ref: '#/components/schemas/AddOn'
+        conditions:
+          type: array
+          description: Conditions in which this parameter is valid for
+          items:
+            $ref: '#/components/schemas/AddOnRequirement'
+        default_value:
+          type: string
+          description: Indicates the value default for the add-on parameter.
+        description:
+          type: string
+          description: Description of the add-on parameter.
+        editable:
+          type: boolean
+          description: Indicates if this parameter can be edited after creation.
+        editable_direction:
+          type: string
+          description: |-
+            Restricts if the parameter can be upscaled/downscaled
+            Expected values are "up", "down", or "" (no restriction).
+        enabled:
+          type: boolean
+          description: Indicates if this parameter is enabled for the add-on.
+        name:
+          type: string
+          description: Name of the add-on parameter.
+        options:
+          type: array
+          description: List of options for the add-on parameter value.
+          items:
+            $ref: '#/components/schemas/AddOnParameterOption'
+        required:
+          type: boolean
+          description: Indicates if this parameter is required by the add-on.
+        validation:
+          type: string
+          description: Validation rule for the add-on parameter.
+        validation_err_msg:
+          type: string
+          description: Error message to return should the parameter be invalid.
+        value_type:
+          type: string
+          description: Type of value of the add-on parameter.
+      description: Representation of an add-on parameter.
+    AddOnParameterOption:
+      properties:
+        name:
+          type: string
+          description: Name of the add-on parameter option.
+        rank:
+          type: integer
+          description: Rank of option to be used in cases where editable direction
+            should be restricted.
+          format: int32
+        requirements:
+          type: array
+          description: List of add-on requirements for this parameter option.
+          items:
+            $ref: '#/components/schemas/AddOnRequirement'
+        value:
+          type: string
+          description: Value of the add-on parameter option.
+      description: Representation of an add-on parameter option.
+    AddOnRequirement:
+      properties:
+        id:
+          type: string
+          description: ID of the add-on requirement.
+        data:
+          type: object
+          additionalProperties:
+            type: object
+          description: Data for the add-on requirement.
+        enabled:
+          type: boolean
+          description: Indicates if this requirement is enabled for the add-on.
+        resource:
+          type: string
+          description: Type of resource of the add-on requirement.
+        status:
+          $ref: '#/components/schemas/AddOnRequirementStatus'
+      description: Representation of an add-on requirement.
+    AddOnRequirementStatus:
+      properties:
+        error_msgs:
+          type: array
+          description: Error messages detailing reasons for unfulfilled requirements.
+          items:
+            type: string
+        fulfilled:
+          type: boolean
+          description: Indicates if this requirement is fulfilled.
+      description: Representation of an add-on requirement status.
+    AddOnSecretPropagation:
+      properties:
+        id:
+          type: string
+          description: ID of the secret propagation
+        destination_secret:
+          type: string
+          description: DestinationSecret is location of the secret to be added
+        enabled:
+          type: boolean
+          description: Indicates is this secret propagation is enabled for the addon
+        source_secret:
+          type: string
+          description: SourceSecret is location of the source secret
+      description: Representation of an addon secret propagation
+    AddOnSubOperator:
+      properties:
+        enabled:
+          type: boolean
+          description: Indicates if the sub operator is enabled for the add-on
+        operator_name:
+          type: string
+          description: Name of the add-on sub operator
+        operator_namespace:
+          type: string
+          description: Namespace of the add-on sub operator
+      description: "Representation of an add-on sub operator. A sub operator is an\
+        \ operator\nwho's life cycle is controlled by the add-on umbrella operator. "
+    AddOnVersion:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'AddOnVersion' if
+            this is a complete object or 'AddOnVersionLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        additional_catalog_sources:
+          type: array
+          description: Additional catalog sources associated with this addon version
+          items:
+            $ref: '#/components/schemas/AdditionalCatalogSource'
+        available_upgrades:
+          type: array
+          description: AvailableUpgrades is the list of versions this version can
+            be upgraded to.
+          items:
+            type: string
+        channel:
+          type: string
+          description: The specific addon catalog source channel of packages
+        config:
+          $ref: '#/components/schemas/AddOnConfig'
+        enabled:
+          type: boolean
+          description: Indicates if this add-on version can be added to clusters.
+        package_image:
+          type: string
+          description: The package image for this addon version
+        parameters:
+          type: array
+          description: List of parameters for this add-on version.
+          items:
+            $ref: '#/components/schemas/AddOnParameter'
+        pull_secret_name:
+          type: string
+          description: The pull secret name used for this addon version.
+        requirements:
+          type: array
+          description: List of requirements for this add-on version.
+          items:
+            $ref: '#/components/schemas/AddOnRequirement'
+        source_image:
+          type: string
+          description: The catalog source image for this add-on version.
+        sub_operators:
+          type: array
+          description: List of sub operators for this add-on version.
+          items:
+            $ref: '#/components/schemas/AddOnSubOperator'
+      description: Representation of an add-on version.
+    AdditionalCatalogSource:
+      properties:
+        id:
+          type: string
+          description: ID of the additional catalog source
+        enabled:
+          type: boolean
+          description: Indicates is this additional catalog source is enabled for
+            the addon
+        image:
+          type: string
+          description: Image of the additional catalog source.
+        name:
+          type: string
+          description: Name of the additional catalog source.
+      description: Representation of an addon catalog source object used by addon
+        versions.
+    AddonUpgradePolicy:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'AddonUpgradePolicy'
+            if this is a complete object or 'AddonUpgradePolicyLink' if it is just
+            a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        addon_id:
+          type: string
+          description: Addon ID this upgrade policy is defined for
+        cluster_id:
+          type: string
+          description: Cluster ID this upgrade policy is defined for.
+        next_run:
+          type: string
+          description: Next time the upgrade should run.
+          format: date-time
+        schedule:
+          type: string
+          description: Schedule cron expression that defines automatic upgrade scheduling.
+        schedule_type:
+          type: string
+          description: Schedule type can be either "manual" (single execution) or
+            "automatic" (re-occurring).
+        upgrade_type:
+          type: string
+          description: Upgrade type specify the type of the upgrade. Must be "ADDON".
+        version:
+          type: string
+          description: Version is the desired upgrade version.
+      description: Representation of an upgrade policy that can be set for a cluster.
+    AddonUpgradePolicyState:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'AddonUpgradePolicyState'
+            if this is a complete object or 'AddonUpgradePolicyStateLink' if it is
+            just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        description:
+          type: string
+          description: Description of the state.
+        value:
+          $ref: '#/components/schemas/UpgradePolicyStateValue'
+      description: Representation of an addon upgrade policy state that that is set
+        for a cluster.
+    AdminCredentials:
+      properties:
+        password:
+          type: string
+          description: Cluster administrator password.
+        user:
+          type: string
+          description: Cluster administrator user name.
+      description: |-
+        Temporary administrator credentials generated during the installation of the
+        cluster.
+    AlertInfo:
+      properties:
+        name:
+          type: string
+          description: The alert name. Multiple alerts with same name are possible.
+        severity:
+          $ref: '#/components/schemas/AlertSeverity'
+      description: Provides information about a single alert firing on the cluster.
+    AlertSeverity:
+      type: string
+      description: Severity of a cluster alert received via telemetry.
+      enum:
+      - critical
+      - none
+      - warning
+    AlertsInfo:
+      properties:
+        alerts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertInfo'
+      description: Provides information about the alerts firing on the cluster.
+    AuditLog:
+      properties:
+        role_arn:
+          type: string
+          description: ARN of the CloudWatch audit log forwarding role
+      description: Contains the necessary attributes to support audit log forwarding
+    AutoscalerResourceLimits:
+      properties:
+        gpus:
+          type: array
+          description: |-
+            Minimum and maximum number of different GPUs in cluster, in the format <gpu_type>:<min>:<max>.
+            Cluster autoscaler will not scale the cluster beyond these numbers. Can be passed multiple times.
+          items:
+            $ref: '#/components/schemas/AutoscalerResourceLimitsGPULimit'
+        cores:
+          $ref: '#/components/schemas/ResourceRange'
+        max_nodes_total:
+          type: integer
+          description: |-
+            Maximum number of nodes in all node groups.
+            Cluster autoscaler will not grow the cluster beyond this number.
+          format: int32
+        memory:
+          $ref: '#/components/schemas/ResourceRange'
+    AutoscalerResourceLimitsGPULimit:
+      properties:
+        range:
+          $ref: '#/components/schemas/ResourceRange'
+        type:
+          type: string
+          description: |-
+            The type of GPU to associate with the minimum and maximum limits.
+            This value is used by the Cluster Autoscaler to identify Nodes that will have GPU capacity by searching
+            for it as a label value on the Node objects. For example, Nodes that carry the label key
+            `cluster-api/accelerator` with the label value being the same as the Type field will be counted towards
+            the resource limits by the Cluster Autoscaler.
+    AutoscalerScaleDownConfig:
+      properties:
+        delay_after_add:
+          type: string
+          description: How long after scale up that scale down evaluation resumes.
+        delay_after_delete:
+          type: string
+          description: "How long after node deletion that scale down evaluation resumes,\
+            \ defaults to scan-interval."
+        delay_after_failure:
+          type: string
+          description: How long after scale down failure that scale down evaluation
+            resumes.
+        enabled:
+          type: boolean
+          description: Should cluster-autoscaler scale down the cluster.
+        unneeded_time:
+          type: string
+          description: How long a node should be unneeded before it is eligible for
+            scale down.
+        utilization_threshold:
+          type: string
+          description: "Node utilization level, defined as sum of requested resources\
+            \ divided by capacity, below which a node can be considered for scale\
+            \ down."
+    AwsEtcdEncryption:
+      properties:
+        kms_key_arn:
+          type: string
+          description: ARN of the KMS to be used for the etcd encryption
+      description: Contains the necessary attributes to support etcd encryption for
+        AWS based clusters.
+    Azure:
+      properties:
+        managed_resource_group_name:
+          type: string
+          description: |-
+            [Required] The name of the Azure Resource Group where the Azure Resources related
+            to the cluster are created. The Azure Resource Group is created with the given
+            value, within the Azure Subscription `subscription_id` of the cluster.
+            `managed_resource_group_name` cannot be equal to the value of `managed_resource_group`.
+            `managed_resource_group_name` is located in the same Azure location as the
+            cluster's region.
+            Not to be confused with `resource_group_name`, which is the Azure Resource Group Name
+            where the own Azure Resource associated to the cluster resides.
+        network_security_group_resource_id:
+          type: string
+          description: |-
+            [Required] The Azure Resource ID of a pre-existing
+            Azure Network Security Group.
+            The Network Security Group specified in network_security_group_resource_id
+            must already be associated to the Azure Subnet `subnet_resource_id`.
+            It is the Azure Network Security Group associated to the cluster's subnet
+            specified in `subnet_resource_id`.
+            `network_security_group_resource_id` must be located in the same Azure
+            location as the cluster's region.
+            The Azure Subscription specified as part of
+            `network_security_group_resource_id` must be located in the same Azure
+            Subscription as `subscription_id`.
+            The Azure Resource Group Name specified as part of `network_security_group_resource_id`
+            must belong to the Azure Subscription `subscription_id`, and in the same
+            Azure location as the cluster's region.
+            The Azure Resource Group Name specified as part of `network_security_group_resource_id`
+            must be a different Resource Group Name than the one specified in
+            `managed_resource_group_name`.
+            The Azure Resource Group Name specified as part of `network_security_group_resource_id`
+            can be the same, or a different one than the one specified in
+            `resource_group_name`.
+        resource_group_name:
+          type: string
+          description: |-
+            [Required] The Azure Resource Group Name of the cluster. It must be within `subscription_id`
+            of the cluster. `resource_group_name` is located in the same Azure location
+            as the cluster's region.
+        resource_name:
+          type: string
+          description: |-
+            [Required] The Azure Resource Name of the cluster. It must be within the
+            Azure Resource Group Name `resource_group_name`.
+            `resource_name` is located in the same Azure location as the cluster's region.
+        subnet_resource_id:
+          type: string
+          description: |-
+            [Required] The Azure Resource ID of a pre-existing Azure
+            Subnet. It is an Azure Subnet used for the Data Plane of the cluster.
+            `subnet_resource_id` must be located in the same Azure location as the
+            cluster's region.
+            The Azure Subscription specified as part of the `subnet_resource_id`
+            must be located in the same Azure Subscription as `subscription_id`.
+            The Azure Resource Group Name specified as part of `subnet_resource_id`
+            must belong to the Azure Subscription `subscription_id`, and in the same
+            Azure location as the cluster's region.
+            The Azure Resource Group Name specified as part of `subnet_resource_id`
+            must be a different Resource Group Name than the one specified in
+            `managed_resource_group_name`.
+            The Azure Resource Group Name specified as part of the `subnet_resource_id`
+            can be the same, or a different one than the one specified in
+            `resource_group_name`.
+        subscription_id:
+          type: string
+          description: |-
+            [Required] The Azure Subscription ID associated with the cluster. It must belong to
+            the Microsoft Entra Tenant ID `tenant_id`.
+        tenant_id:
+          type: string
+          description: "[Required] The Microsoft Entra Tenant ID where the cluster\
+            \ belongs."
+      description: Microsoft Azure settings of a cluster.
+    AzureNodePool:
+      properties:
+        os_disk_size_gibibytes:
+          type: integer
+          description: |-
+            The size in GiB to assign to the OS disks of the
+            Nodes in the Node Pool. The property
+            is the number of bytes x 1024^3.
+            If not specified, OS disk size is 30 GiB.
+          format: int32
+        os_disk_storage_account_type:
+          type: string
+          description: |-
+            The disk storage account type to use for the OS disks of the Nodes in the
+            Node Pool. Valid values are:
+            * Standard_LRS: HDD
+            * StandardSSD_LRS: Standard SSD
+            * Premium_LRS: Premium SDD
+            * UltraSSD_LRS: Ultra SDD
+
+            If not specified, `Premium_LRS` is used.
+        vm_size:
+          type: string
+          description: |-
+            The Azure Virtual Machine size identifier used for the
+            Nodes of the Node Pool.
+            Availability of VM sizes are dependent on the Azure Location
+            of the parent Cluster.
+            Required during creation.
+        ephemeral_os_disk_enabled:
+          type: boolean
+          description: |-
+            Enables Ephemeral OS Disks for the Nodes in the Node Pool.
+            If not specified, no Ephemeral OS Disks are used.
+        resource_name:
+          type: string
+          description: |-
+            ResourceName is the Azure Resource Name of the NodePool.
+            ResourceName must be within the Azure Resource Group Name of the parent
+            Cluster it belongs to.
+            ResourceName must be located in the same Azure Location as the parent
+            Cluster it belongs to.
+            ResourceName must be located in the same Azure Subscription as the parent
+            Cluster it belongs to.
+            ResourceName must belong to the same Microsoft Entra Tenant ID as the parent
+            Cluster it belongs to.
+            Required during creation.
+            Immutable.
+      description: Representation of azure node pool specific parameters.
+    BillingModel:
+      type: string
+      description: Billing model for cluster resources.
+      enum:
+      - marketplace
+      - marketplace-aws
+      - marketplace-gcp
+      - marketplace-rhm
+      - marketplace-azure
+      - standard
+    BillingModelItem:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'BillingModelItem'
+            if this is a complete object or 'BillingModelItemLink' if it is just a
+            link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        billing_model_type:
+          type: string
+          description: "BillingModelType is the type of the BillingModel. e.g. standard,\
+            \ marketplace."
+        description:
+          type: string
+          description: Single line description of the billing model.
+        display_name:
+          type: string
+          description: User friendly display name of the billing model.
+        marketplace:
+          type: string
+          description: "Indicates the marketplace of the billing model. e.g. gcp,\
+            \ aws, etc."
+      description: BillingModelItem represents a billing model
+    BreakGlassCredential:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'BreakGlassCredential'
+            if this is a complete object or 'BreakGlassCredentialLink' if it is just
+            a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        expiration_timestamp:
+          type: string
+          description: ExpirationTimestamp is the date and time when the credential
+            will expire.
+          format: date-time
+        kubeconfig:
+          type: string
+          description: Kubeconfig is the generated kubeconfig for this credential.
+            It is only stored in memory
+        revocation_timestamp:
+          type: string
+          description: RevocationTimestamp is the date and time when the credential
+            has been revoked.
+          format: date-time
+        status:
+          $ref: '#/components/schemas/BreakGlassCredentialStatus'
+        username:
+          type: string
+          description: Username is the user which will be used for this credential.
+      description: Representation of a break glass credential.
+    BreakGlassCredentialStatus:
+      type: string
+      description: Status of the break glass credential.
+      enum:
+      - awaiting_revocation
+      - created
+      - expired
+      - failed
+      - issued
+      - revoked
+    ByoOidc:
+      properties:
+        enabled:
+          type: boolean
+          description: |-
+            Boolean flag indicating if the cluster should be creating using _ByoOidc_.
+
+            By default this is `false`.
+
+            To enable it the cluster needs to be ROSA cluster and the organization of the user needs
+            to have the `byo-oidc` feature toggle enabled.
+      description: ByoOidc configuration.
+    ClientComponent:
+      properties:
+        name:
+          type: string
+          description: The name of the component.
+        namespace:
+          type: string
+          description: The namespace of the component.
+      description: The reference of a component that will consume the client configuration.
+    CloudVPC:
+      properties:
+        aws_security_groups:
+          type: array
+          description: List of AWS security groups with details.
+          items:
+            $ref: '#/components/schemas/SecurityGroup'
+        aws_subnets:
+          type: array
+          description: List of AWS subnetworks with details.
+          items:
+            $ref: '#/components/schemas/Subnetwork'
+        cidr_block:
+          type: string
+          description: CIDR block of the virtual private cloud.
+        id:
+          type: string
+          description: ID of virtual private cloud.
+        name:
+          type: string
+          description: Name of virtual private cloud according to its `Name` tag on
+            AWS.
+        red_hat_managed:
+          type: boolean
+          description: If the resource is RH managed.
+        subnets:
+          type: array
+          description: List of subnets used by the virtual private cloud.
+          items:
+            type: string
+      description: Description of a cloud provider virtual private cloud.
+    CloudProvider:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'CloudProvider'
+            if this is a complete object or 'CloudProviderLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        display_name:
+          type: string
+          description: |-
+            Name of the cloud provider for display purposes. It can contain any characters,
+            including spaces.
+        name:
+          type: string
+          description: "Human friendly identifier of the cloud provider, for example\
+            \ `aws`."
+        regions:
+          type: array
+          description: (optional) Provider's regions - only included when listing
+            providers with `fetchRegions=true`.
+          items:
+            $ref: '#/components/schemas/CloudRegion'
+      description: Cloud provider.
+    CloudProviderData:
+      properties:
+        aws:
+          $ref: '#/components/schemas/AWS'
+        gcp:
+          $ref: '#/components/schemas/GCP'
+        availability_zones:
+          type: array
+          description: Availability zone
+          items:
+            type: string
+        key_location:
+          type: string
+          description: Key location
+        key_ring_name:
+          type: string
+          description: Key ring name
+        region:
+          $ref: '#/components/schemas/CloudRegion'
+        subnets:
+          type: array
+          description: Subnets
+          items:
+            type: string
+        version:
+          $ref: '#/components/schemas/Version'
+        vpc_ids:
+          type: array
+          description: VPC ids
+          items:
+            type: string
+      description: Description of a cloud provider data used for cloud provider inquiries.
+    CloudRegion:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'CloudRegion' if
+            this is a complete object or 'CloudRegionLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        ccs_only:
+          type: boolean
+          description: "'true' if the region is supported only for CCS clusters, 'false'\
+            \ otherwise."
+        kms_location_id:
+          type: string
+          description: |-
+            (GCP only) Comma-separated list of KMS location IDs that can be used with this region.
+            E.g. "global,nam4,us". Order is not guaranteed.
+        kms_location_name:
+          type: string
+          description: |-
+            (GCP only) Comma-separated list of display names corresponding to KMSLocationID.
+            E.g. "Global,nam4 (Iowa, South Carolina, and Oklahoma),US". Order is not guaranteed but will match KMSLocationID.
+            Unfortunately, this API doesn't allow robust splitting - Contact ocm-feedback@redhat.com if you want to rely on this.
+        cloud_provider:
+          $ref: '#/components/schemas/CloudProvider'
+        display_name:
+          type: string
+          description: "Name of the region for display purposes, for example `N. Virginia`."
+        enabled:
+          type: boolean
+          description: Whether the region is enabled for deploying a managed cluster.
+        govcloud:
+          type: boolean
+          description: Whether the region is an AWS GovCloud region.
+        name:
+          type: string
+          description: |-
+            Human friendly identifier of the region, for example `us-east-1`.
+
+            NOTE: Currently for all cloud providers and all regions `id` and `name` have exactly
+            the same values.
+        supports_hypershift:
+          type: boolean
+          description: "'true' if the region is supported for Hypershift deployments,\
+            \ 'false' otherwise."
+        supports_multi_az:
+          type: boolean
+          description: Whether the region supports multiple availability zones.
+      description: Description of a region of a cloud provider.
+    Cluster:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'Cluster' if this
+            is a complete object or 'ClusterLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        api:
+          $ref: '#/components/schemas/ClusterAPI'
+        aws:
+          $ref: '#/components/schemas/AWS'
+        aws_infrastructure_access_role_grants:
+          type: array
+          description: List of AWS infrastructure access role grants on this cluster.
+          items:
+            $ref: '#/components/schemas/AWSInfrastructureAccessRoleGrant'
+        ccs:
+          $ref: '#/components/schemas/CCS'
+        dns:
+          $ref: '#/components/schemas/DNS'
+        fips:
+          type: boolean
+          description: Create cluster that uses FIPS Validated / Modules in Process
+            cryptographic libraries.
+        gcp:
+          $ref: '#/components/schemas/GCP'
+        gcp_encryption_key:
+          $ref: '#/components/schemas/GCPEncryptionKey'
+        gcp_network:
+          $ref: '#/components/schemas/GCPNetwork'
+        additional_trust_bundle:
+          type: string
+          description: Additional trust bundle.
+        addons:
+          type: array
+          description: List of add-ons on this cluster.
+          items:
+            $ref: '#/components/schemas/AddOnInstallation'
+        autoscaler:
+          $ref: '#/components/schemas/ClusterAutoscaler'
+        azure:
+          $ref: '#/components/schemas/Azure'
+        billing_model:
+          $ref: '#/components/schemas/BillingModel'
+        byo_oidc:
+          $ref: '#/components/schemas/ByoOidc'
+        cloud_provider:
+          $ref: '#/components/schemas/CloudProvider'
+        console:
+          $ref: '#/components/schemas/ClusterConsole'
+        creation_timestamp:
+          type: string
+          description: |-
+            Date and time when the cluster was initially created, using the
+            format defined in [RFC3339](https://www.ietf.org/rfc/rfc3339.txt).
+          format: date-time
+        delete_protection:
+          $ref: '#/components/schemas/DeleteProtection'
+        disable_user_workload_monitoring:
+          type: boolean
+          description: |-
+            Indicates whether the User workload monitoring is enabled or not
+            It is enabled by default
+        domain_prefix:
+          type: string
+          description: |-
+            DomainPrefix of the cluster. This prefix is optionally assigned by the user when the
+            cluster is created. It will appear in the Cluster's domain when the cluster is provisioned.
+        etcd_encryption:
+          type: boolean
+          description: |-
+            Indicates whether that etcd is encrypted or not.
+            This is set only during cluster creation.
+        expiration_timestamp:
+          type: string
+          description: |-
+            Date and time when the cluster will be automatically deleted, using the format defined in
+            [RFC3339](https://www.ietf.org/rfc/rfc3339.txt). If no timestamp is provided, the cluster
+            will never expire.
+
+            This option is unsupported.
+          format: date-time
+        external_id:
+          type: string
+          description: "External identifier of the cluster, generated by the installer."
+        external_auth_config:
+          $ref: '#/components/schemas/ExternalAuthConfig'
+        external_configuration:
+          $ref: '#/components/schemas/ExternalConfiguration'
+        flavour:
+          $ref: '#/components/schemas/Flavour'
+        groups:
+          type: array
+          description: Link to the collection of groups of user of the cluster.
+          items:
+            $ref: '#/components/schemas/Group'
+        health_state:
+          $ref: '#/components/schemas/ClusterHealthState'
+        htpasswd:
+          $ref: '#/components/schemas/HTPasswdIdentityProvider'
+        hypershift:
+          $ref: '#/components/schemas/Hypershift'
+        identity_providers:
+          type: array
+          description: Link to the collection of identity providers of the cluster.
+          items:
+            $ref: '#/components/schemas/IdentityProvider'
+        inflight_checks:
+          type: array
+          description: List of inflight checks on this cluster.
+          items:
+            $ref: '#/components/schemas/InflightCheck'
+        infra_id:
+          type: string
+          description: InfraID is used for example to name the VPCs.
+        ingresses:
+          type: array
+          description: List of ingresses on this cluster.
+          items:
+            $ref: '#/components/schemas/Ingress'
+        kubelet_config:
+          $ref: '#/components/schemas/KubeletConfig'
+        load_balancer_quota:
+          type: integer
+          description: Load Balancer quota to be assigned to the cluster.
+          format: int32
+        machine_pools:
+          type: array
+          description: List of machine pools on this cluster.
+          items:
+            $ref: '#/components/schemas/MachinePool'
+        managed:
+          type: boolean
+          description: |-
+            Flag indicating if the cluster is managed (by Red Hat) or
+            self-managed by the user.
+        managed_service:
+          $ref: '#/components/schemas/ManagedService'
+        multi_az:
+          type: boolean
+          description: |-
+            Flag indicating if the cluster should be created with nodes in
+            different availability zones or all the nodes in a single one
+            randomly selected.
+        multi_arch_enabled:
+          type: boolean
+          description: Indicate whether the cluster is enabled for multi arch workers
+        name:
+          type: string
+          description: |-
+            Name of the cluster. This name is assigned by the user when the
+            cluster is created. This is used to uniquely identify the cluster
+        network:
+          $ref: '#/components/schemas/Network'
+        node_drain_grace_period:
+          $ref: '#/components/schemas/Value'
+        node_pools:
+          type: array
+          description: |-
+            List of node pools on this cluster.
+            NodePool is a scalable set of worker nodes attached to a hosted cluster.
+          items:
+            $ref: '#/components/schemas/NodePool'
+        nodes:
+          $ref: '#/components/schemas/ClusterNodes'
+        openshift_version:
+          type: string
+          description: |-
+            Version of _OpenShift_ installed in the cluster, for example `4.0.0-0.2`.
+
+            When retrieving a cluster this will always be reported.
+
+            When provisioning a cluster this will be ignored, as the version to
+            deploy will be determined internally.
+        product:
+          $ref: '#/components/schemas/Product'
+        properties:
+          type: object
+          additionalProperties:
+            type: string
+          description: User defined properties for tagging and querying.
+        provision_shard:
+          $ref: '#/components/schemas/ProvisionShard'
+        proxy:
+          $ref: '#/components/schemas/Proxy'
+        region:
+          $ref: '#/components/schemas/CloudRegion'
+        registry_config:
+          $ref: '#/components/schemas/ClusterRegistryConfig'
+        state:
+          $ref: '#/components/schemas/ClusterState'
+        status:
+          $ref: '#/components/schemas/ClusterStatus'
+        storage_quota:
+          $ref: '#/components/schemas/Value'
+        subscription:
+          $ref: '#/components/schemas/Subscription'
+        version:
+          $ref: '#/components/schemas/Version'
+      description: |-
+        Definition of an _OpenShift_ cluster.
+
+        The `cloud_provider` attribute is a reference to the cloud provider. When a
+        cluster is retrieved it will be a link to the cloud provider, containing only
+        the kind, id and href attributes:
+
+        ```json
+        {
+          "cloud_provider": {
+            "kind": "CloudProviderLink",
+            "id": "123",
+            "href": "/api/clusters_mgmt/v1/cloud_providers/123"
+          }
+        }
+        ```
+
+        When a cluster is created this is optional, and if used it should contain the
+        identifier of the cloud provider to use:
+
+        ```json
+        {
+          "cloud_provider": {
+            "id": "123",
+          }
+        }
+        ```
+
+        If not included, then the cluster will be created using the default cloud
+        provider, which is currently Amazon Web Services.
+
+        The region attribute is mandatory when a cluster is created.
+
+        The `aws.access_key_id`, `aws.secret_access_key` and `dns.base_domain`
+        attributes are mandatory when creation a cluster with your own Amazon Web
+        Services account.
+    ClusterAPI:
+      properties:
+        url:
+          type: string
+          description: The URL of the API server of the cluster.
+        listening:
+          $ref: '#/components/schemas/ListeningMethod'
+      description: Information about the API of a cluster.
+    ClusterAutoscaler:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'ClusterAutoscaler'
+            if this is a complete object or 'ClusterAutoscalerLink' if it is just
+            a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        balance_similar_node_groups:
+          type: boolean
+          description: |-
+            BalanceSimilarNodeGroups enables/disables the
+            `--balance-similar-node-groups` cluster-autoscaler feature.
+            This feature will automatically identify node groups with
+            the same instance type and the same set of labels and try
+            to keep the respective sizes of those node groups balanced.
+        balancing_ignored_labels:
+          type: array
+          description: |-
+            This option specifies labels that cluster autoscaler should ignore when considering node group similarity.
+            For example, if you have nodes with "topology.ebs.csi.aws.com/zone" label, you can add name of this label here
+            to prevent cluster autoscaler from splitting nodes into different node groups based on its value.
+          items:
+            type: string
+        ignore_daemonsets_utilization:
+          type: boolean
+          description: Should CA ignore DaemonSet pods when calculating resource utilization
+            for scaling down. false by default.
+        log_verbosity:
+          type: integer
+          description: |-
+            Sets the autoscaler log level.
+            Default value is 1, level 4 is recommended for DEBUGGING and level 6 will enable almost everything.
+          format: int32
+        max_node_provision_time:
+          type: string
+          description: Maximum time CA waits for node to be provisioned.
+        max_pod_grace_period:
+          type: integer
+          description: Gives pods graceful termination time before scaling down.
+          format: int32
+        pod_priority_threshold:
+          type: integer
+          description: |-
+            To allow users to schedule "best-effort" pods, which shouldn't trigger
+            Cluster Autoscaler actions, but only run when there are spare resources available,
+            More info: https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md#how-does-cluster-autoscaler-work-with-pod-priority-and-preemption.
+          format: int32
+        resource_limits:
+          $ref: '#/components/schemas/AutoscalerResourceLimits'
+        scale_down:
+          $ref: '#/components/schemas/AutoscalerScaleDownConfig'
+        skip_nodes_with_local_storage:
+          type: boolean
+          description: "Enables/Disables `--skip-nodes-with-local-storage` CA feature\
+            \ flag. If true cluster autoscaler will never delete nodes with pods with\
+            \ local storage, e.g. EmptyDir or HostPath. true by default at autoscaler."
+      description: Cluster-wide autoscaling configuration.
+    ClusterConfigurationMode:
+      type: string
+      description: Configuration mode of a cluster.
+      enum:
+      - full
+      - read_only
+    ClusterConsole:
+      properties:
+        url:
+          type: string
+          description: The URL of the console of the cluster.
+      description: Information about the console of a cluster.
+    ClusterCredentials:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'ClusterCredentials'
+            if this is a complete object or 'ClusterCredentialsLink' if it is just
+            a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        kubeconfig:
+          type: string
+          description: Administrator _kubeconfig_ file for the cluster.
+      description: Credentials of the a cluster.
+    ClusterDeployment:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'ClusterDeployment'
+            if this is a complete object or 'ClusterDeploymentLink' if it is just
+            a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        content:
+          type: object
+          description: Content of the clusterdeployment.
+      description: Representation of a clusterdeployment.
+    ClusterHealthState:
+      type: string
+      description: ClusterHealthState indicates the health of a cluster.
+      enum:
+      - healthy
+      - unhealthy
+      - unknown
+    ClusterLink:
+      properties:
+        href:
+          type: string
+          description: "HREF for the cluster, filled in response."
+        id:
+          type: string
+          description: The cluster's ID.
+      description: Definition of a cluster link.
+    ClusterNodes:
+      properties:
+        autoscale_compute:
+          $ref: '#/components/schemas/MachinePoolAutoscaling'
+        availability_zones:
+          type: array
+          description: The availability zones upon which the nodes are created.
+          items:
+            type: string
+        compute:
+          type: integer
+          description: |-
+            Number of compute nodes of the cluster.
+            Compute and AutoscaleCompute cannot be used together.
+          format: int32
+        compute_labels:
+          type: object
+          additionalProperties:
+            type: string
+          description: The labels set on the "default" compute machine pool.
+        compute_machine_type:
+          $ref: '#/components/schemas/MachineType'
+        compute_root_volume:
+          $ref: '#/components/schemas/RootVolume'
+        infra:
+          type: integer
+          description: Number of infrastructure nodes of the cluster.
+          format: int32
+        infra_machine_type:
+          $ref: '#/components/schemas/MachineType'
+        master:
+          type: integer
+          description: Number of master nodes of the cluster.
+          format: int32
+        master_machine_type:
+          $ref: '#/components/schemas/MachineType'
+        security_group_filters:
+          type: array
+          description: List of security groups to be applied to nodes (Optional).
+          items:
+            $ref: '#/components/schemas/MachinePoolSecurityGroupFilter'
+        total:
+          type: integer
+          description: Total number of nodes of the cluster.
+          format: int32
+      description: Counts of different classes of nodes inside a cluster.
+    ClusterOperatorInfo:
+      properties:
+        condition:
+          $ref: '#/components/schemas/ClusterOperatorState'
+        name:
+          type: string
+          description: Name of the operator.
+        reason:
+          type: string
+          description: "Extra detail on condition, if available.  Empty string if\
+            \ unknown."
+        time:
+          type: string
+          description: "Time when the sample was obtained, in [RFC3339](https://www.ietf.org/rfc/rfc3339.txt)\
+            \ format."
+          format: date-time
+        version:
+          type: string
+          description: Current version of the operator.  Empty string if unknown.
+    ClusterOperatorState:
+      type: string
+      description: Overall state of a cluster operator.
+      enum:
+      - available
+      - degraded
+      - failing
+      - upgrading
+    ClusterOperatorsInfo:
+      properties:
+        operators:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClusterOperatorInfo'
+      description: Provides detailed information about the operators installed on
+        the cluster.
+    ClusterRegistration:
+      properties:
+        console_url:
+          type: string
+          description: Optional Console URL of the cluster.
+        external_id:
+          type: string
+          description: Identifier of the cluster generated by the installer.
+        organization_id:
+          type: string
+          description: |-
+            Organization identifier of the cluster generated by the
+            account manager.
+        subscription_id:
+          type: string
+          description: |-
+            Subscription identifier of the cluster generated by the account
+            manager.
+      description: |-
+        Registration of a new cluster to the service.
+
+        For example, to register a cluster that has been provisioned outside
+        of this service, send a a request like this:
+
+        ```http
+        POST /api/clusters_mgmt/v1/register_cluster HTTP/1.1
+        ```
+
+        With a request body like this:
+
+        ```json
+        {
+          "external_id": "d656aecf-11a6-4782-ad86-8f72638449ba",
+          "subscription_id": "...",
+          "organization_id": "..."
+        }
+        ```
+    ClusterRegistryConfig:
+      properties:
+        additional_trusted_ca:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            A map containing the registry hostname as the key, and the PEM-encoded certificate as the value,
+            for each additional registry CA to trust.
+        allowed_registries_for_import:
+          type: array
+          description: |-
+            AllowedRegistriesForImport limits the container image registries that normal users may import
+            images from. Set this list to the registries that you trust to contain valid Docker
+            images and that you want applications to be able to import from. Users with
+            permission to create Images or ImageStreamMappings via the API are not affected by
+            this policy - typically only administrators or system integrations will have those
+            permissions.
+          items:
+            $ref: '#/components/schemas/RegistryLocation'
+        platform_allowlist:
+          $ref: '#/components/schemas/RegistryAllowlist'
+        registry_sources:
+          $ref: '#/components/schemas/RegistrySources'
+      description: |
+        ClusterRegistryConfig describes the configuration of registries for the cluster.
+        Its format reflects the OpenShift Image Configuration, for which docs are available on
+        [docs.openshift.com](https://docs.openshift.com/container-platform/4.16/openshift_images/image-configuration.html)
+        ```json
+        {
+           "registry_config": {
+             "registry_sources": {
+               "blocked_registries": [
+                 "badregistry.io",
+                 "badregistry8.io"
+               ]
+             }
+           }
+        }
+        ```
+    ClusterResources:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'ClusterResources'
+            if this is a complete object or 'ClusterResourcesLink' if it is just a
+            link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        cluster_id:
+          type: string
+          description: Cluster ID for the fetched resources
+        creation_timestamp:
+          type: string
+          description: Date and time when the resources were fetched.
+          format: date-time
+        resources:
+          type: object
+          additionalProperties:
+            type: string
+          description: Returned map of cluster resources fetched.
+      description: "Cluster Resource which belongs to a cluster, example Cluster Deployment."
+    ClusterState:
+      type: string
+      description: Overall state of a cluster.
+      enum:
+      - error
+      - hibernating
+      - installing
+      - pending
+      - powering_down
+      - ready
+      - resuming
+      - uninstalling
+      - unknown
+      - validating
+      - waiting
+    ClusterStatus:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'ClusterStatus'
+            if this is a complete object or 'ClusterStatusLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        dns_ready:
+          type: boolean
+          description: DNSReady from Provisioner
+        oidc_ready:
+          type: boolean
+          description: OIDCReady from user configuration.
+        configuration_mode:
+          $ref: '#/components/schemas/ClusterConfigurationMode'
+        current_compute:
+          type: integer
+          description: Current Replicas available for a Hosted Cluster
+          format: int32
+        description:
+          type: string
+          description: Detailed description of the cluster status.
+        limited_support_reason_count:
+          type: integer
+          description: Limited Support Reason Count
+          format: int32
+        provision_error_code:
+          type: string
+          description: Provisioning Error Code
+        provision_error_message:
+          type: string
+          description: Provisioning Error Message
+        state:
+          $ref: '#/components/schemas/ClusterState'
+      description: Detailed status of a cluster.
+    ComponentRoute:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'ComponentRoute'
+            if this is a complete object or 'ComponentRouteLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        hostname:
+          type: string
+          description: Hostname of the route.
+        tls_secret_ref:
+          type: string
+          description: TLS Secret reference of the route.
+      description: Representation of a Component Route.
+    ComponentRouteType:
+      type: string
+      description: Type of Component Route.
+      enum:
+      - console
+      - downloads
+      - oauth
+    ControlPlaneUpgradePolicy:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'ControlPlaneUpgradePolicy'
+            if this is a complete object or 'ControlPlaneUpgradePolicyLink' if it
+            is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        cluster_id:
+          type: string
+          description: Cluster ID this upgrade policy for control plane is defined
+            for.
+        creation_timestamp:
+          type: string
+          description: Timestamp for creation of resource.
+          format: date-time
+        enable_minor_version_upgrades:
+          type: boolean
+          description: Indicates if minor version upgrades are allowed for automatic
+            upgrades (for manual it's always allowed).
+        last_update_timestamp:
+          type: string
+          description: Timestamp for last update that happened to resource.
+          format: date-time
+        next_run:
+          type: string
+          description: Next time the upgrade should run.
+          format: date-time
+        schedule:
+          type: string
+          description: Schedule cron expression that defines automatic upgrade scheduling.
+        schedule_type:
+          $ref: '#/components/schemas/ScheduleType'
+        state:
+          $ref: '#/components/schemas/UpgradePolicyState'
+        upgrade_type:
+          $ref: '#/components/schemas/UpgradeType'
+        version:
+          type: string
+          description: Version is the desired upgrade version.
+      description: Representation of an upgrade policy that can be set for a cluster.
+    CredentialRequest:
+      properties:
+        name:
+          type: string
+          description: Name of the credentials secret used to access cloud resources
+        namespace:
+          type: string
+          description: Namespace where the credentials secret lives in the cluster
+        policy_permissions:
+          type: array
+          description: List of policy permissions needed to access cloud resources
+          items:
+            type: string
+        service_account:
+          type: string
+          description: Service account name to use when authenticating
+      description: Contains the necessary attributes to allow each operator to access
+        the necessary AWS resources
+    DeleteProtection:
+      properties:
+        enabled:
+          type: boolean
+          description: |-
+            Boolean flag indicating if the cluster should be be using _DeleteProtection_.
+
+            By default this is `false`.
+
+            To enable it a SREP needs to patch the value through OCM API
+      description: DeleteProtection configuration.
+    DetectionType:
+      type: string
+      enum:
+      - auto
+      - manual
+    Ec2MetadataHttpTokens:
+      type: string
+      description: Which Ec2MetadataHttpTokens to use for metadata service interaction
+        options for EC2 instances
+      enum:
+      - optional
+      - required
+    EncryptionKey:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'EncryptionKey'
+            if this is a complete object or 'EncryptionKeyLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        name:
+          type: string
+          description: Name of the encryption key.
+      description: Description of a cloud provider encryption key.
+    Environment:
+      properties:
+        backplane_url:
+          type: string
+          description: the backplane url for the environment
+        last_limited_support_check:
+          type: string
+          description: last time that the worker checked for limited support clusters
+          format: date-time
+        last_upgrade_available_check:
+          type: string
+          description: last time that the worker checked for available upgrades
+          format: date-time
+        name:
+          type: string
+          description: environment name
+      description: Description of an environment
+    Event:
+      properties:
+        body:
+          type: object
+          additionalProperties:
+            type: string
+          description: Body of the event to track the details of the tracking event
+            as Key value pair
+        key:
+          type: string
+          description: |-
+            Key of the event to be tracked. This key should start with an
+            uppercase letter followed by alphanumeric characters or
+            underscores. The entire key needs to be smaller than 64 characters.
+      description: Representation of a trackable event.
+    ExternalAuth:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'ExternalAuth' if
+            this is a complete object or 'ExternalAuthLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        claim:
+          $ref: '#/components/schemas/ExternalAuthClaim'
+        clients:
+          type: array
+          description: The list of the platform's clients that need to request tokens
+            from the issuer.
+          items:
+            $ref: '#/components/schemas/ExternalAuthClientConfig'
+        issuer:
+          $ref: '#/components/schemas/TokenIssuer'
+      description: Representation of an external authentication provider.
+    ExternalAuthClaim:
+      properties:
+        mappings:
+          $ref: '#/components/schemas/TokenClaimMappings'
+        validation_rules:
+          type: array
+          description: ValidationRules are rules that are applied to validate token
+            claims to authenticate users.
+          items:
+            $ref: '#/components/schemas/TokenClaimValidationRule'
+      description: The claims and validation rules used in the configuration of the
+        external authentication.
+    ExternalAuthClientConfig:
+      properties:
+        id:
+          type: string
+          description: The identifier of the OIDC client from the OIDC provider.
+        component:
+          $ref: '#/components/schemas/ClientComponent'
+        extra_scopes:
+          type: array
+          description: ExtraScopes is an optional set of scopes to request tokens
+            with.
+          items:
+            type: string
+        secret:
+          type: string
+          description: The secret of the OIDC client from the OIDC provider.
+      description: |-
+        ExternalAuthClientConfig contains configuration for the platform's clients that
+        need to request tokens from the issuer.
+    ExternalAuthConfig:
+      properties:
+        enabled:
+          type: boolean
+          description: |-
+            Boolean flag indicating if the cluster should use an external authentication configuration.
+
+            By default this is false.
+
+            To enable it the cluster needs to be ROSA HCP cluster and the organization of the user needs
+            to have the `external-authentication` feature toggle enabled.
+        external_auths:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExternalAuth'
+      description: ExternalAuthConfig configuration
+    ExternalConfiguration:
+      properties:
+        labels:
+          type: array
+          description: list of labels externally configured on the clusterdeployment.
+          items:
+            $ref: '#/components/schemas/Label'
+        manifests:
+          type: array
+          description: list of manifest externally configured for a hosted cluster.
+          items:
+            $ref: '#/components/schemas/Manifest'
+        syncsets:
+          type: array
+          description: list of syncsets externally configured on the cluster.
+          items:
+            $ref: '#/components/schemas/Syncset'
+      description: Representation of cluster external configuration.
+    Flavour:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'Flavour' if this
+            is a complete object or 'FlavourLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        aws:
+          $ref: '#/components/schemas/AWSFlavour'
+        gcp:
+          $ref: '#/components/schemas/GCPFlavour'
+        name:
+          type: string
+          description: |-
+            Human friendly identifier of the cluster, for example `4`.
+
+            NOTE: Currently for all flavours the `id` and `name` attributes have exactly the
+            same values.
+        network:
+          $ref: '#/components/schemas/Network'
+        nodes:
+          $ref: '#/components/schemas/FlavourNodes'
+      description: |-
+        Set of predefined properties of a cluster. For example, a _huge_ flavour can be a cluster
+        with 10 infra nodes and 1000 compute nodes.
+    FlavourNodes:
+      properties:
+        master:
+          type: integer
+          description: Number of master nodes of the cluster.
+          format: int32
+      description: Counts of different classes of nodes inside a flavour.
+    GcpAuthentication:
+      properties:
+        href:
+          type: string
+          description: Self link
+        id:
+          type: string
+          description: Unique identifier of the object
+        kind:
+          type: string
+          description: Indicates the type of this object
+      description: Google cloud platform authentication method of a cluster.
+    GcpSecurity:
+      properties:
+        secure_boot:
+          type: boolean
+          description: Determines if Shielded VM feature "Secure Boot" should be set
+            for the nodes of the cluster.
+      description: Google cloud platform security settings of a cluster.
+    GithubIdentityProvider:
+      properties:
+        ca:
+          type: string
+          description: Optional trusted certificate authority bundle to use when making
+            requests tot he server.
+        client_id:
+          type: string
+          description: Client identifier of a registered _GitHub_ OAuth application.
+        client_secret:
+          type: string
+          description: Client secret of a registered _GitHub_ OAuth application.
+        hostname:
+          type: string
+          description: |-
+            For _GitHub Enterprise_ you must provide the host name of your instance, such as
+            `example.com`. This value must match the _GitHub Enterprise_ host name value in the
+            `/setup/settings` file and cannot include a port number.
+
+            For plain _GitHub_ omit this parameter.
+        organizations:
+          type: array
+          description: Optional list of organizations. Cannot be used in combination
+            with the Teams field.
+          items:
+            type: string
+        teams:
+          type: array
+          description: Optional list of teams. Cannot be used in combination with
+            the Organizations field.
+          items:
+            type: string
+      description: Details for `github` identity providers.
+    GitlabIdentityProvider:
+      properties:
+        ca:
+          type: string
+          description: Optional trusted certificate authority bundle to use when making
+            requests tot he server.
+        url:
+          type: string
+          description: URL of the _GitLab_ instance.
+        client_id:
+          type: string
+          description: Client identifier of a registered _GitLab_ OAuth application.
+        client_secret:
+          type: string
+          description: Client secret issued by _GitLab_.
+      description: Details for `gitlab` identity providers.
+    GoogleIdentityProvider:
+      properties:
+        client_id:
+          type: string
+          description: Client identifier of a registered _Google_ project.
+        client_secret:
+          type: string
+          description: Client secret issued by _Google_.
+        hosted_domain:
+          type: string
+          description: Optional hosted domain to restrict sign-in accounts to.
+      description: Details for `google` identity providers.
+    Group:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'Group' if this
+            is a complete object or 'GroupLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        users:
+          type: array
+          description: List of users of the group.
+          items:
+            $ref: '#/components/schemas/User'
+      description: Representation of a group of users.
+    GroupsClaim:
+      properties:
+        claim:
+          type: string
+          description: The claim used in the token.
+        prefix:
+          type: string
+          description: A prefix contatenated in the claim (Optional).
+    Hypershift:
+      properties:
+        enabled:
+          type: boolean
+          description: |-
+            Boolean flag indicating if the cluster should be creating using _Hypershift_.
+
+            By default this is `false`.
+
+            To enable it the cluster needs to be ROSA cluster and the organization of the user needs
+            to have the `hypershift` capability enabled.
+      description: Hypershift configuration.
+    HypershiftConfig:
+      properties:
+        hcp_namespace:
+          type: string
+          description: |-
+            Contains the name of the hcp namespace for this Hypershift cluster.
+            Empty for non Hypershift clusters.
+        enabled:
+          type: boolean
+          description: |-
+            Boolean flag indicating if the cluster should be creating using _Hypershift_.
+
+            By default this is `false`.
+
+            To enable it the cluster needs to be ROSA cluster and the organization of the user needs
+            to have the `hypershift` capability enabled.
+        management_cluster:
+          type: string
+          description: |-
+            Contains the name of the current management cluster for this Hypershift cluster.
+            Empty for non Hypershift clusters.
+      description: Hypershift configuration.
+    IdentityProvider:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'IdentityProvider'
+            if this is a complete object or 'IdentityProviderLink' if it is just a
+            link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        ldap:
+          $ref: '#/components/schemas/LDAPIdentityProvider'
+        challenge:
+          type: boolean
+          description: |-
+            When `true` unauthenticated token requests from non-web clients (like the CLI) are sent a
+            `WWW-Authenticate` challenge header for this provider.
+        github:
+          $ref: '#/components/schemas/GithubIdentityProvider'
+        gitlab:
+          $ref: '#/components/schemas/GitlabIdentityProvider'
+        google:
+          $ref: '#/components/schemas/GoogleIdentityProvider'
+        htpasswd:
+          $ref: '#/components/schemas/HTPasswdIdentityProvider'
+        login:
+          type: boolean
+          description: |-
+            When `true` unauthenticated token requests from web clients (like the web console) are
+            redirected to the authorize URL to log in.
+        mapping_method:
+          $ref: '#/components/schemas/IdentityProviderMappingMethod'
+        name:
+          type: string
+          description: The name of the identity provider.
+        open_id:
+          $ref: '#/components/schemas/OpenIDIdentityProvider'
+        type:
+          $ref: '#/components/schemas/IdentityProviderType'
+      description: Representation of an identity provider.
+    IdentityProviderMappingMethod:
+      type: string
+      description: Controls how mappings are established between provider identities
+        and user objects.
+      enum:
+      - add
+      - claim
+      - generate
+      - lookup
+    IdentityProviderType:
+      type: string
+      description: Type of identity provider.
+      enum:
+      - LDAPIdentityProvider
+      - GithubIdentityProvider
+      - GitlabIdentityProvider
+      - GoogleIdentityProvider
+      - HTPasswdIdentityProvider
+      - OpenIDIdentityProvider
+    ImageOverrides:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'ImageOverrides'
+            if this is a complete object or 'ImageOverridesLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        aws:
+          type: array
+          items:
+            $ref: '#/components/schemas/AMIOverride'
+        gcp:
+          type: array
+          items:
+            $ref: '#/components/schemas/GCPImageOverride'
+      description: ImageOverrides holds the lists of available images per cloud provider.
+    InflightCheck:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'InflightCheck'
+            if this is a complete object or 'InflightCheckLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        details:
+          type: object
+          description: Details regarding the state of the inflight check.
+        ended_at:
+          type: string
+          description: The time the check finished running.
+          format: date-time
+        name:
+          type: string
+          description: The name of the inflight check.
+        restarts:
+          type: integer
+          description: The number of times the inflight check restarted.
+          format: int32
+        started_at:
+          type: string
+          description: The time the check started running.
+          format: date-time
+        state:
+          $ref: '#/components/schemas/InflightCheckState'
+      description: Representation of check running before the cluster is provisioned.
+    InflightCheckState:
+      type: string
+      description: State of an inflight check.
+      enum:
+      - failed
+      - passed
+      - pending
+      - running
+    Ingress:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'Ingress' if this
+            is a complete object or 'IngressLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        dns_name:
+          type: string
+          description: DNS Name of the ingress.
+        cluster_routes_hostname:
+          type: string
+          description: Cluster routes hostname.
+        cluster_routes_tls_secret_ref:
+          type: string
+          description: Cluster routes TLS Secret reference.
+        component_routes:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ComponentRoute'
+          description: Component Routes settings.
+        default:
+          type: boolean
+          description: Indicates if this is the default ingress.
+        excluded_namespaces:
+          type: array
+          description: A set of excluded namespaces for the ingress.
+          items:
+            type: string
+        listening:
+          $ref: '#/components/schemas/ListeningMethod'
+        load_balancer_type:
+          $ref: '#/components/schemas/LoadBalancerFlavor'
+        route_namespace_ownership_policy:
+          $ref: '#/components/schemas/NamespaceOwnershipPolicy'
+        route_selectors:
+          type: object
+          additionalProperties:
+            type: string
+          description: 'A set of labels for the ingress. '
+        route_wildcard_policy:
+          $ref: '#/components/schemas/WildcardPolicy'
+      description: Representation of an ingress.
+    InstanceIAMRoles:
+      properties:
+        master_role_arn:
+          type: string
+          description: The IAM role ARN that will be attached to master instances
+        worker_role_arn:
+          type: string
+          description: The IAM role ARN that will be attached to worker instances
+      description: Contains the necessary attributes to support role-based authentication
+        on AWS.
+    KeyRing:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'KeyRing' if this
+            is a complete object or 'KeyRingLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        name:
+          type: string
+          description: Name of the key ring.
+      description: Description of a cloud provider key ring.
+    KubeletConfig:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'KubeletConfig'
+            if this is a complete object or 'KubeletConfigLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        name:
+          type: string
+          description: |-
+            Allows the user to specify the name to be used to identify this KubeletConfig.
+            Optional. A name will be generated if not provided.
+        pod_pids_limit:
+          type: integer
+          description: |-
+            Allows the user to specify the podPidsLimit to be applied via KubeletConfig.
+            Useful if workloads have greater PIDs limit requirements than the OCP default.
+          format: int32
+      description: |-
+        OCM representation of KubeletConfig, exposing the fields of Kubernetes
+        KubeletConfig that can be managed by users
+    Label:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'Label' if this
+            is a complete object or 'LabelLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        key:
+          type: string
+          description: the key of the label
+        value:
+          type: string
+          description: the value to set in the label
+      description: Representation of a label in clusterdeployment.
+    LimitedSupportReason:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'LimitedSupportReason'
+            if this is a complete object or 'LimitedSupportReasonLink' if it is just
+            a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        creation_timestamp:
+          type: string
+          description: The time the reason was detected.
+          format: date-time
+        details:
+          type: string
+          description: URL with a link to a detailed description of the reason.
+        detection_type:
+          $ref: '#/components/schemas/DetectionType'
+        override:
+          $ref: '#/components/schemas/LimitedSupportReasonOverride'
+        summary:
+          type: string
+          description: Summary of the reason.
+        template:
+          $ref: '#/components/schemas/LimitedSupportReasonTemplate'
+      description: A reason that a cluster is in limited support.
+    LimitedSupportReasonOverride:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'LimitedSupportReasonOverride'
+            if this is a complete object or 'LimitedSupportReasonOverrideLink' if
+            it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        enabled:
+          type: boolean
+          description: Indicates if the override is enabled
+      description: Representation of the limited support reason override.
+    LimitedSupportReasonTemplate:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'LimitedSupportReasonTemplate'
+            if this is a complete object or 'LimitedSupportReasonTemplateLink' if
+            it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        details:
+          type: string
+          description: A detailed description of the reason.
+        summary:
+          type: string
+          description: Summary of the reason.
+      description: A template for cluster limited support reason.
+    ListeningMethod:
+      type: string
+      description: Cluster components listening method.
+      enum:
+      - external
+      - internal
+    LoadBalancerFlavor:
+      type: string
+      description: Type of load balancer for AWS cloud provider parameters.
+      enum:
+      - classic
+      - nlb
+    Log:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'Log' if this is
+            a complete object or 'LogLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        content:
+          type: string
+          description: Content of the log.
+      description: Log of the cluster.
+    MachinePool:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'MachinePool' if
+            this is a complete object or 'MachinePoolLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        aws:
+          $ref: '#/components/schemas/AWSMachinePool'
+        autoscaling:
+          $ref: '#/components/schemas/MachinePoolAutoscaling'
+        availability_zones:
+          type: array
+          description: The availability zones upon which the nodes are created.
+          items:
+            type: string
+        instance_type:
+          type: string
+          description: The instance type of Nodes to create.
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          description: The labels set on the Nodes created.
+        replicas:
+          type: integer
+          description: |-
+            The number of Machines (and Nodes) to create.
+            Replicas and autoscaling cannot be used together.
+          format: int32
+        root_volume:
+          $ref: '#/components/schemas/RootVolume'
+        security_group_filters:
+          type: array
+          description: List of security groups to be applied to MachinePool (Optional)
+          items:
+            $ref: '#/components/schemas/MachinePoolSecurityGroupFilter'
+        subnets:
+          type: array
+          description: The subnets upon which the nodes are created.
+          items:
+            type: string
+        taints:
+          type: array
+          description: The taints set on the Nodes created.
+          items:
+            $ref: '#/components/schemas/Taint'
+      description: Representation of a machine pool in a cluster.
+    MachinePoolAutoscaling:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'MachinePoolAutoscaling'
+            if this is a complete object or 'MachinePoolAutoscalingLink' if it is
+            just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        max_replicas:
+          type: integer
+          description: The maximum number of replicas for the machine pool.
+          format: int32
+        min_replicas:
+          type: integer
+          description: The minimum number of replicas for the machine pool.
+          format: int32
+      description: Representation of a autoscaling in a machine pool.
+    MachinePoolSecurityGroupFilter:
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+      description: "Security Group Filter object, containing name of the filter tag\
+        \ and value of the filter tag"
+    MachineType:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'MachineType' if
+            this is a complete object or 'MachineTypeLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        ccs_only:
+          type: boolean
+          description: "'true' if the instance type is supported only for CCS clusters,\
+            \ 'false' otherwise."
+        cpu:
+          $ref: '#/components/schemas/Value'
+        architecture:
+          $ref: '#/components/schemas/ProcessorType'
+        category:
+          $ref: '#/components/schemas/MachineTypeCategory'
+        cloud_provider:
+          $ref: '#/components/schemas/CloudProvider'
+        generic_name:
+          type: string
+          description: |-
+            Generic name for quota purposes, for example `highmem-4`.
+            Cloud provider agnostic - many values are shared between "similar"
+            machine types on different providers.
+            Corresponds to `resource_name` values in "compute.node"  quota cost data.
+        memory:
+          $ref: '#/components/schemas/Value'
+        name:
+          type: string
+          description: "Human friendly identifier of the machine type, for example\
+            \ `r5.xlarge - Memory Optimized`."
+        size:
+          $ref: '#/components/schemas/MachineTypeSize'
+      description: Machine type.
+    MachineTypeCategory:
+      type: string
+      description: Machine type category.
+      enum:
+      - accelerated_computing
+      - compute_optimized
+      - general_purpose
+      - memory_optimized
+    MachineTypeSize:
+      type: string
+      description: Machine type size.
+      enum:
+      - large
+      - medium
+      - small
+    ManagedService:
+      properties:
+        enabled:
+          type: boolean
+          description: |-
+            Indicates whether the cluster belongs to a managed service
+            This should only be set by the "Managed Service" service.
+            clusters with this set can only be modified by the "Managed Service" service.
+      description: Contains the necessary attributes to support role-based authentication
+        on AWS.
+    Manifest:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'Manifest' if this
+            is a complete object or 'ManifestLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        creation_timestamp:
+          type: string
+          description: Date and time when the manifest got created in OCM database.
+          format: date-time
+        live_resource:
+          type: object
+          description: Transient value to represent the underlying live resource.
+        spec:
+          type: object
+          description: |-
+            Spec of Manifest Work object from open cluster management
+            For more info please check https://open-cluster-management.io/concepts/manifestwork.
+        updated_timestamp:
+          type: string
+          description: Date and time when the manifest got updated in OCM database.
+          format: date-time
+        workloads:
+          type: array
+          description: List of k8s objects to deploy on a hosted cluster.
+          items:
+            type: object
+      description: Representation of a manifestwork.
+    NamespaceOwnershipPolicy:
+      type: string
+      description: Type of Namespace Ownership Policy.
+      enum:
+      - InterNamespaceAllowed
+      - Strict
+    Network:
+      properties:
+        host_prefix:
+          type: integer
+          description: Network host prefix which is defaulted to `23` if not specified.
+          format: int32
+        machine_cidr:
+          type: string
+          description: "IP address block from which to assign machine IP addresses,\
+            \ for example `10.0.0.0/16`."
+        pod_cidr:
+          type: string
+          description: "IP address block from which to assign pod IP addresses, for\
+            \ example `10.128.0.0/14`."
+        service_cidr:
+          type: string
+          description: "IP address block from which to assign service IP addresses,\
+            \ for example `172.30.0.0/16`."
+        type:
+          type: string
+          description: The main controller responsible for rendering the core networking
+            components.
+      description: Network configuration of a cluster.
+    NetworkVerification:
+      properties:
+        cloud_provider_data:
+          $ref: '#/components/schemas/CloudProviderData'
+        cluster_id:
+          type: string
+          description: Cluster ID needed to execute the network verification.
+        items:
+          type: array
+          description: Details about each subnet network verification.
+          items:
+            $ref: '#/components/schemas/SubnetNetworkVerification'
+        platform:
+          $ref: '#/components/schemas/Platform'
+        total:
+          type: integer
+          description: Amount of network verifier executions started.
+          format: int32
+    NodeInfo:
+      properties:
+        amount:
+          type: integer
+          description: The amount of the nodes from this type.
+          format: int32
+        type:
+          $ref: '#/components/schemas/NodeType'
+      description: Provides information about a node from specific type in the cluster.
+    NodePool:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'NodePool' if this
+            is a complete object or 'NodePoolLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        aws_node_pool:
+          $ref: '#/components/schemas/AWSNodePool'
+        auto_repair:
+          type: boolean
+          description: Specifies whether health checks should be enabled for machines
+            in the NodePool.
+        autoscaling:
+          $ref: '#/components/schemas/NodePoolAutoscaling'
+        availability_zone:
+          type: string
+          description: The availability zone upon which the node is created.
+        azure_node_pool:
+          $ref: '#/components/schemas/AzureNodePool'
+        kubelet_configs:
+          type: array
+          description: The names of the KubeletConfigs for this node pool.
+          items:
+            type: string
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          description: The labels set on the Nodes created.
+        management_upgrade:
+          $ref: '#/components/schemas/NodePoolManagementUpgrade'
+        node_drain_grace_period:
+          $ref: '#/components/schemas/Value'
+        replicas:
+          type: integer
+          description: |-
+            The number of Machines (and Nodes) to create.
+            Replicas and autoscaling cannot be used together.
+          format: int32
+        status:
+          $ref: '#/components/schemas/NodePoolStatus'
+        subnet:
+          type: string
+          description: The subnet upon which the nodes are created.
+        taints:
+          type: array
+          description: The taints set on the Nodes created.
+          items:
+            $ref: '#/components/schemas/Taint'
+        tuning_configs:
+          type: array
+          description: The names of the tuning configs for this node pool.
+          items:
+            type: string
+        version:
+          $ref: '#/components/schemas/Version'
+      description: Representation of a node pool in a cluster.
+    NodePoolAutoscaling:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'NodePoolAutoscaling'
+            if this is a complete object or 'NodePoolAutoscalingLink' if it is just
+            a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        max_replica:
+          type: integer
+          description: The maximum number of replicas for the node pool.
+          format: int32
+        min_replica:
+          type: integer
+          description: The minimum number of replicas for the node pool.
+          format: int32
+      description: Representation of a autoscaling in a node pool.
+    NodePoolManagementUpgrade:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'NodePoolManagementUpgrade'
+            if this is a complete object or 'NodePoolManagementUpgradeLink' if it
+            is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        max_surge:
+          type: string
+          description: Maximum number of nodes in the NodePool of a ROSA HCP cluster
+            that can be scheduled above the desired number of nodes during the upgrade.
+        max_unavailable:
+          type: string
+          description: Maximum number of nodes in the NodePool of a ROSA HCP cluster
+            that can be unavailable during the upgrade.
+        type:
+          type: string
+          description: Type of strategy for handling upgrades.
+      description: Representation of node pool management.
+    NodePoolStatus:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'NodePoolStatus'
+            if this is a complete object or 'NodePoolStatusLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        current_replicas:
+          type: integer
+          description: The current number of replicas for the node pool.
+          format: int32
+        message:
+          type: string
+          description: Adds additional information about the NodePool status when
+            the node pool doesn't reach the desired replicas.
+      description: Representation of the status of a node pool.
+    NodePoolUpgradePolicy:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'NodePoolUpgradePolicy'
+            if this is a complete object or 'NodePoolUpgradePolicyLink' if it is just
+            a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        cluster_id:
+          type: string
+          description: Cluster ID this upgrade policy for node pool is defined for.
+        creation_timestamp:
+          type: string
+          description: Timestamp for creation of resource.
+          format: date-time
+        enable_minor_version_upgrades:
+          type: boolean
+          description: Indicates if minor version upgrades are allowed for automatic
+            upgrades (for manual it's always allowed).
+        last_update_timestamp:
+          type: string
+          description: Timestamp for last update that happened to resource.
+          format: date-time
+        next_run:
+          type: string
+          description: Next time the upgrade should run.
+          format: date-time
+        node_pool_id:
+          type: string
+          description: Node Pool ID this upgrade policy is defined for.
+        schedule:
+          type: string
+          description: Schedule cron expression that defines automatic upgrade scheduling.
+        schedule_type:
+          $ref: '#/components/schemas/ScheduleType'
+        state:
+          $ref: '#/components/schemas/UpgradePolicyState'
+        upgrade_type:
+          $ref: '#/components/schemas/UpgradeType'
+        version:
+          type: string
+          description: Version is the desired upgrade version.
+      description: Representation of an upgrade policy that can be set for a node
+        pool.
+    NodeType:
+      type: string
+      description: Type of node received via telemetry.
+      enum:
+      - compute
+      - infra
+      - master
+    NodesInfo:
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/NodeInfo'
+      description: Provides information about the nodes in the cluster.
+    OidcConfig:
+      properties:
+        href:
+          type: string
+          description: "HREF for the oidc config, filled in response."
+        id:
+          type: string
+          description: "ID for the oidc config, filled in response."
+        creation_timestamp:
+          type: string
+          description: "Creation timestamp, filled in response."
+          format: date-time
+        installer_role_arn:
+          type: string
+          description: "ARN of the AWS role to assume when installing the cluster\
+            \ as to reveal the secret, supplied in request. It is only to be used\
+            \ in Unmanaged Oidc Config."
+        issuer_url:
+          type: string
+          description: "Issuer URL, filled in response when Managed and supplied in\
+            \ Unmanaged."
+        last_update_timestamp:
+          type: string
+          description: "Last update timestamp, filled when patching a valid attribute\
+            \ of this oidc config."
+          format: date-time
+        last_used_timestamp:
+          type: string
+          description: "Last used timestamp, filled by the latest cluster that used\
+            \ this oidc config."
+          format: date-time
+        managed:
+          type: boolean
+          description: Indicates whether it is Managed or Unmanaged (Customer hosted).
+        organization_id:
+          type: string
+          description: "Organization ID, filled in response respecting token provided."
+        reusable:
+          type: boolean
+          description: Indicates whether the Oidc Config can be reused.
+        secret_arn:
+          type: string
+          description: "Secrets Manager ARN for the OIDC private key, supplied in\
+            \ request. It is only to be used in Unmanaged Oidc Config."
+      description: Contains the necessary attributes to support oidc configuration
+        hosting under Red Hat or registering a Customer's byo oidc config.
+    OidcThumbprint:
+      properties:
+        href:
+          type: string
+          description: "HREF for the oidc config thumbprint, filled in response."
+        cluster_id:
+          type: string
+          description: "ClusterId is the for the cluster used, filled in response."
+        kind:
+          type: string
+          description: "Kind is the resource type, filled in response."
+        oidc_config_id:
+          type: string
+          description: "OidcConfigId is the ID for the oidc config used, filled in\
+            \ response."
+        thumbprint:
+          type: string
+          description: "Thumbprint is the thumbprint itself, filled in response."
+      description: Contains the necessary attributes to support oidc configuration
+        thumbprint operations such as fetching/creation of a thumbprint
+    OidcThumbprintInput:
+      properties:
+        cluster_id:
+          type: string
+          description: "ClusterId is the for the cluster used, exclusive from OidcConfigId."
+        oidc_config_id:
+          type: string
+          description: "OidcConfigId is the ID for the oidc config used, exclusive\
+            \ from ClusterId."
+      description: Contains the necessary attributes to fetch an OIDC Configuration
+        thumbprint
+    OpenIDClaims:
+      properties:
+        email:
+          type: array
+          description: List of claims to use as the mail address.
+          items:
+            type: string
+        groups:
+          type: array
+          description: List of claims to use as the group name.
+          items:
+            type: string
+        name:
+          type: array
+          description: List of claims to use as the display name.
+          items:
+            type: string
+        preferred_username:
+          type: array
+          description: List of claims to use as the preferred user name when provisioning
+            a user.
+          items:
+            type: string
+      description: _OpenID_ identity provider claims.
+    OpenIDIdentityProvider:
+      properties:
+        ca:
+          type: string
+          description: Certificate bunde to use to validate server certificates for
+            the configured URL.
+        claims:
+          $ref: '#/components/schemas/OpenIDClaims'
+        client_id:
+          type: string
+          description: Identifier of a client registered with the _OpenID_ provider.
+        client_secret:
+          type: string
+          description: Client secret.
+        extra_authorize_parameters:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of extra parameters to add to the authorization
+            token request.
+        extra_scopes:
+          type: array
+          description: |-
+            Optional list of scopes to request, in addition to the `openid` scope, during the
+            authorization token request.
+          items:
+            type: string
+        issuer:
+          type: string
+          description: The URL that the OpenID Provider asserts as the Issuer Identifier
+      description: Details for `openid` identity providers.
+    OperatorIAMRole:
+      properties:
+        id:
+          type: string
+          description: Randomly-generated ID to identify the operator role
+        name:
+          type: string
+          description: Name of the credentials secret used to access cloud resources
+        namespace:
+          type: string
+          description: Namespace where the credentials secret lives in the cluster
+        role_arn:
+          type: string
+          description: Role to assume when accessing AWS resources
+        service_account:
+          type: string
+          description: Service account name to use when authenticating
+      description: Contains the necessary attributes to allow each operator to access
+        the necessary AWS resources
+    OrganizationLink:
+      properties:
+        href:
+          type: string
+          description: "HREF for the Organization, filled in response."
+        id:
+          type: string
+          description: The organization's ID.
+      description: Definition of an organization link.
+    PendingDeleteCluster:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'PendingDeleteCluster'
+            if this is a complete object or 'PendingDeleteClusterLink' if it is just
+            a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        best_effort:
+          type: boolean
+          description: Flag indicating if the cluster deletion should be best-effort
+            mode or not.
+        cluster:
+          $ref: '#/components/schemas/Cluster'
+        creation_timestamp:
+          type: string
+          description: |-
+            Date and time when the cluster was initially created, using the
+            format defined in [RFC3339](https://www.ietf.org/rfc/rfc3339.txt).
+          format: date-time
+      description: Represents a pending delete entry for a specific cluster.
+    Platform:
+      type: string
+      description: Representation of an platform type field.
+      enum:
+      - aws
+      - aws-classic
+      - aws-hosted-cp
+      - gcp
+      - hostedcluster
+    PrivateLinkClusterConfiguration:
+      properties:
+        principals:
+          type: array
+          description: List of additional principals for the Private Link
+          items:
+            $ref: '#/components/schemas/PrivateLinkPrincipal'
+      description: Manages the configuration for the Private Links.
+    PrivateLinkConfiguration:
+      properties:
+        principals:
+          $ref: '#/components/schemas/PrivateLinkPrincipals'
+      description: Manages the configuration for the Private Links.
+    PrivateLinkPrincipal:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'PrivateLinkPrincipal'
+            if this is a complete object or 'PrivateLinkPrincipalLink' if it is just
+            a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        principal:
+          type: string
+          description: ARN for a principal that is allowed for this Private Link.
+    PrivateLinkPrincipals:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'PrivateLinkPrincipals'
+            if this is a complete object or 'PrivateLinkPrincipalsLink' if it is just
+            a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        principals:
+          type: array
+          description: List of additional principals for the Private Link
+          items:
+            $ref: '#/components/schemas/PrivateLinkPrincipal'
+      description: Contains a list of principals for the Private Link.
+    ProcessorType:
+      type: string
+      description: Processor type category.
+      enum:
+      - amd64
+      - arm64
+    Product:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'Product' if this
+            is a complete object or 'ProductLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        name:
+          type: string
+          description: Name of the product.
+      description: Representation of an product that can be selected as a cluster
+        type.
+    ProductMinimalVersion:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'ProductMinimalVersion'
+            if this is a complete object or 'ProductMinimalVersionLink' if it is just
+            a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        rosa_cli:
+          type: string
+          description: The ROSA CLI minimal version.
+        start_date:
+          type: string
+          description: The start date for this minimal version.
+          format: date-time
+      description: Representation of a product minimal version.
+    ProductTechnologyPreview:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'ProductTechnologyPreview'
+            if this is a complete object or 'ProductTechnologyPreviewLink' if it is
+            just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        additional_text:
+          type: string
+          description: Message associated with this technology preview.
+        end_date:
+          type: string
+          description: The end date for this technology preview.
+          format: date-time
+        start_date:
+          type: string
+          description: The start date for this technology preview.
+          format: date-time
+      description: Representation of a product technology preview.
+    ProvisionShard:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'ProvisionShard'
+            if this is a complete object or 'ProvisionShardLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        aws_account_operator_config:
+          $ref: '#/components/schemas/ServerConfig'
+        aws_base_domain:
+          type: string
+          description: Contains the AWS base domain.
+        gcp_base_domain:
+          type: string
+          description: Contains the GCP base domain.
+        gcp_project_operator:
+          $ref: '#/components/schemas/ServerConfig'
+        cloud_provider:
+          $ref: '#/components/schemas/CloudProvider'
+        creation_timestamp:
+          type: string
+          description: |-
+            Date and time when the provision shard was initially created, using the
+            format defined in [RFC3339](https://www.ietf.org/rfc/rfc3339.txt).
+          format: date-time
+        hive_config:
+          $ref: '#/components/schemas/ServerConfig'
+        hypershift_config:
+          $ref: '#/components/schemas/ServerConfig'
+        last_update_timestamp:
+          type: string
+          description: |-
+            Date and time when the provision shard was last updated, using the
+            format defined in [RFC3339](https://www.ietf.org/rfc/rfc3339.txt).
+          format: date-time
+        management_cluster:
+          type: string
+          description: |-
+            Contains the name of the management cluster for Hypershift clusters that are assigned to this shard.
+            This field is populated by OCM, and must not be overwritten via API.
+        region:
+          $ref: '#/components/schemas/CloudRegion'
+        status:
+          type: string
+          description: "Status of the provision shard. Possible values: active/maintenance/offline."
+      description: "Contains the properties of the provision shard, including AWS\
+        \ and GCP related configurations"
+    ProvisionShardTopology:
+      type: string
+      enum:
+      - dedicated
+    Proxy:
+      properties:
+        http_proxy:
+          type: string
+          description: HTTPProxy is the URL of the proxy for HTTP requests.
+        https_proxy:
+          type: string
+          description: HTTPSProxy is the URL of the proxy for HTTPS requests.
+        no_proxy:
+          type: string
+          description: "NoProxy is a comma-separated list of domains and CIDRs for\
+            \ which \nthe proxy should not be used"
+      description: Proxy configuration of a cluster.
+    RegistryAllowlist:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'RegistryAllowlist'
+            if this is a complete object or 'RegistryAllowlistLink' if it is just
+            a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        cloud_provider:
+          $ref: '#/components/schemas/CloudProvider'
+        creation_timestamp:
+          type: string
+          description: CreationTimestamp is the date and time when the allow list
+            has been created.
+          format: date-time
+        registries:
+          type: array
+          description: Registries is the list of registries contained in this Allowlist.
+          items:
+            type: string
+      description: RegistryAllowlist represents a single registry allowlist.
+    RegistryLocation:
+      properties:
+        domain_name:
+          type: string
+          description: |-
+            domainName specifies a domain name for the registry
+            In case the registry use non-standard (80 or 443) port, the port should be included
+            in the domain name as well.
+        insecure:
+          type: boolean
+          description: |-
+            insecure indicates whether the registry is secure (https) or insecure (http)
+            By default (if not specified) the registry is assumed as secure.
+      description: |-
+        RegistryLocation contains a location of the registry specified by the registry domain
+        name. The domain name might include wildcards, like '*' or '??'.
+    RegistrySources:
+      properties:
+        allowed_registries:
+          type: array
+          description: |-
+            AllowedRegistries: registries for which image pull and push actions are allowed.
+            To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name.
+            For example, *.example.com. You can specify an individual repository within a registry.
+            For example: reg1.io/myrepo/myapp:latest. All other registries are blocked.
+            Mutually exclusive with `BlockedRegistries`
+          items:
+            type: string
+        blocked_registries:
+          type: array
+          description: |-
+            BlockedRegistries: registries for which image pull and push actions are denied.
+            To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name.
+            For example, *.example.com. You can specify an individual repository within a registry.
+            For example: reg1.io/myrepo/myapp:latest. All other registries are allowed.
+            Mutually exclusive with `AllowedRegistries`
+          items:
+            type: string
+        insecure_registries:
+          type: array
+          description: |-
+            InsecureRegistries are registries which do not have a valid TLS certificate or only support HTTP connections.
+            To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name.
+            For example, *.example.com. You can specify an individual repository within a registry.
+            For example: reg1.io/myrepo/myapp:latest.
+          items:
+            type: string
+      description: |-
+        RegistrySources contains configuration that determines how the container runtime should treat individual
+        registries when accessing images for builds and pods. For instance, whether or not to allow insecure access.
+        It does not contain configuration for the internal cluster registry.
+    ReleaseImageDetails:
+      properties:
+        available_upgrades:
+          type: array
+          description: AvailableUpgrades is the list of versions this version can
+            be upgraded to.
+          items:
+            type: string
+        release_image:
+          type: string
+          description: ReleaseImage contains the URI of Openshift release image.
+    ReleaseImages:
+      properties:
+        arm64:
+          $ref: '#/components/schemas/ReleaseImageDetails'
+        multi:
+          $ref: '#/components/schemas/ReleaseImageDetails'
+    ResourceRange:
+      properties:
+        max:
+          type: integer
+          format: int32
+        min:
+          type: integer
+          format: int32
+    RolePolicy:
+      properties:
+        arn:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+    RolePolicyBinding:
+      properties:
+        arn:
+          type: string
+        creation_timestamp:
+          type: string
+          format: date-time
+        last_update_timestamp:
+          type: string
+          format: date-time
+        name:
+          type: string
+        policies:
+          type: array
+          items:
+            $ref: '#/components/schemas/RolePolicy'
+        status:
+          $ref: '#/components/schemas/RolePolicyBindingStatus'
+        type:
+          type: string
+    RolePolicyBindingStatus:
+      properties:
+        description:
+          type: string
+        value:
+          type: string
+    RootVolume:
+      properties:
+        aws:
+          $ref: '#/components/schemas/AWSVolume'
+        gcp:
+          $ref: '#/components/schemas/GCPVolume'
+      description: Root volume capabilities.
+    ScheduleType:
+      type: string
+      description: ScheduleType defines which type of scheduling should be used for
+        the upgrade policy.
+      enum:
+      - automatic
+      - manual
+    SecurityGroup:
+      properties:
+        id:
+          type: string
+          description: The security group ID.
+        name:
+          type: string
+          description: Name of the security group according to its `Name` tag on AWS.
+        red_hat_managed:
+          type: boolean
+          description: If the resource is RH managed.
+      description: AWS security group object
+    ServerConfig:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'ServerConfig' if
+            this is a complete object or 'ServerConfigLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        kubeconfig:
+          type: string
+          description: The kubeconfig of the server.
+        server:
+          type: string
+          description: The URL of the server.
+        topology:
+          $ref: '#/components/schemas/ProvisionShardTopology'
+      description: Representation of a server config
+    SocketTotalNodeRoleOSMetricNode:
+      properties:
+        node_roles:
+          type: array
+          description: Representation of the node role for a cluster.
+          items:
+            type: string
+        operating_system:
+          type: string
+          description: The operating system.
+        socket_total:
+          type: number
+          description: The total socket capacity of nodes with this set of roles and
+            operating system.
+          format: float
+        time:
+          type: string
+          format: date-time
+      description: |-
+        Representation of information from telemetry about a the socket capacity
+        by node role and OS.
+    SocketTotalsNodeRoleOSMetricNode:
+      properties:
+        socket_totals:
+          type: array
+          items:
+            $ref: '#/components/schemas/SocketTotalNodeRoleOSMetricNode'
+      description: |-
+        Representation of information from telemetry about the socket capacity by node
+        role and OS of a cluster.
+    StorageQuota:
+      properties:
+        unit:
+          type: string
+          description: Unit of storage
+        value:
+          type: number
+          description: Numerical value
+          format: float
+      description: 'Representation of a storage quota '
+    StsSupportJumpRole:
+      properties:
+        role_arn:
+          type: string
+          description: ARN of the support role created in the SRE jump account.
+      description: Isolated STS support role created per organization.
+    SubnetNetworkVerification:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'SubnetNetworkVerification'
+            if this is a complete object or 'SubnetNetworkVerificationLink' if it
+            is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        details:
+          type: array
+          description: Slice of failures that happened during a subnet network verification.
+          items:
+            type: string
+        platform:
+          $ref: '#/components/schemas/Platform'
+        state:
+          type: string
+          description: State of the subnet network verification.
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: Tags supplied to the network verifier for this subnet.
+    Subnetwork:
+      properties:
+        cidr_block:
+          type: string
+          description: The CIDR Block of the subnet.
+        availability_zone:
+          type: string
+          description: The availability zone to which the subnet is related.
+        name:
+          type: string
+          description: Name of the subnet according to its `Name` tag on AWS.
+        public:
+          type: boolean
+          description: Whether or not it is a public subnet.
+        red_hat_managed:
+          type: boolean
+          description: If the resource is RH managed.
+        subnet_id:
+          type: string
+          description: The subnet ID to be used while installing a cluster.
+      description: AWS subnetwork object to be used while installing a cluster
+    Subscription:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'Subscription' if
+            this is a complete object or 'SubscriptionLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+      description: Definition of a subscription.
+    Syncset:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'Syncset' if this
+            is a complete object or 'SyncsetLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        resources:
+          type: array
+          description: List of k8s objects to configure for the cluster.
+          items:
+            type: object
+      description: Representation of a syncset.
+    Taint:
+      properties:
+        effect:
+          type: string
+          description: "The effect on the node for the pods matching the taint, i.e:\
+            \ NoSchedule, NoExecute, PreferNoSchedule."
+        key:
+          type: string
+          description: The key for the taint
+        value:
+          type: string
+          description: The value for the taint.
+      description: Representation of a Taint set on a MachinePool in a cluster.
+    TokenClaimMappings:
+      properties:
+        groups:
+          $ref: '#/components/schemas/GroupsClaim'
+        username:
+          $ref: '#/components/schemas/UsernameClaim'
+      description: The claim mappings defined for users and groups.
+    TokenClaimValidationRule:
+      properties:
+        claim:
+          type: string
+          description: Claim is a name of a required claim.
+        required_value:
+          type: string
+          description: RequiredValue is the required value for the claim.
+      description: The rule that is applied to validate token claims to authenticate
+        users.
+    TokenIssuer:
+      properties:
+        ca:
+          type: string
+          description: Certificate bundle to use to validate server certificates for
+            the configured URL.
+        url:
+          type: string
+          description: URL is the serving URL of the token issuer.
+        audiences:
+          type: array
+          description: |-
+            Audiences is an array of audiences that the token was issued for.
+            Valid tokens must include at least one of these values in their
+            "aud" claim.
+            Must be set to exactly one value.
+          items:
+            type: string
+      description: Representation of a token issuer used in an external authentication.
+    TrustedIp:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'TrustedIp' if this
+            is a complete object or 'TrustedIpLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        enabled:
+          type: boolean
+          description: The boolean set to show if the ip is enabled.
+      description: Representation of a trusted ip address in clusterdeployment.
+    TuningConfig:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'TuningConfig' if
+            this is a complete object or 'TuningConfigLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        name:
+          type: string
+          description: Name of the tuning config.
+        spec:
+          type: object
+          description: Spec of the tuning config.
+      description: Representation of a tuning config.
+    UpgradePolicy:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'UpgradePolicy'
+            if this is a complete object or 'UpgradePolicyLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        cluster_id:
+          type: string
+          description: Cluster ID this upgrade policy is defined for.
+        enable_minor_version_upgrades:
+          type: boolean
+          description: Indicates if minor version upgrades are allowed for automatic
+            upgrades (for manual it's always allowed).
+        next_run:
+          type: string
+          description: Next time the upgrade should run.
+          format: date-time
+        schedule:
+          type: string
+          description: Schedule cron expression that defines automatic upgrade scheduling.
+        schedule_type:
+          $ref: '#/components/schemas/ScheduleType'
+        upgrade_type:
+          $ref: '#/components/schemas/UpgradeType'
+        version:
+          type: string
+          description: Version is the desired upgrade version.
+      description: Representation of an upgrade policy that can be set for a cluster.
+    UpgradePolicyState:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'UpgradePolicyState'
+            if this is a complete object or 'UpgradePolicyStateLink' if it is just
+            a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        description:
+          type: string
+          description: Description of the state.
+        value:
+          $ref: '#/components/schemas/UpgradePolicyStateValue'
+      description: Representation of an upgrade policy state that that is set for
+        a cluster.
+    UpgradePolicyStateValue:
+      type: string
+      description: Overall state of a cluster upgrade policy.
+      enum:
+      - cancelled
+      - completed
+      - delayed
+      - failed
+      - pending
+      - scheduled
+      - started
+    UpgradeType:
+      type: string
+      description: UpgradeType defines which type of upgrade should be used.
+      enum:
+      - OSD
+      - ADDON
+      - ControlPlane
+      - NodePool
+    User:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'User' if this is
+            a complete object or 'UserLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+      description: Representation of a user.
+    UsernameClaim:
+      properties:
+        claim:
+          type: string
+          description: The claim used in the token.
+        prefix:
+          type: string
+          description: A prefix contatenated in the claim (Optional).
+        prefix_policy:
+          type: string
+          description: |-
+            PrefixPolicy specifies how a prefix should apply.
+
+            By default, claims other than `email` will be prefixed with the issuer URL to
+            prevent naming clashes with other plugins.
+
+            Set to "NoPrefix" to disable prefixing.
+      description: The username claim mapping.
+    Value:
+      properties:
+        unit:
+          type: string
+          description: Name of the unit used to measure the value.
+        value:
+          type: number
+          description: Numeric value.
+          format: float
+      description: |-
+        Numeric value and the unit used to measure it.
+
+        Units are not mandatory, and they're not specified for some resources. For
+        resources that use bytes, the accepted units are:
+
+        - 1 B = 1 byte
+        - 1 KB = 10^3 bytes
+        - 1 MB = 10^6 bytes
+        - 1 GB = 10^9 bytes
+        - 1 TB = 10^12 bytes
+        - 1 PB = 10^15 bytes
+
+        - 1 B = 1 byte
+        - 1 KiB = 2^10 bytes
+        - 1 MiB = 2^20 bytes
+        - 1 GiB = 2^30 bytes
+        - 1 TiB = 2^40 bytes
+        - 1 PiB = 2^50 bytes
+    Version:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'Version' if this
+            is a complete object or 'VersionLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        gcp_marketplace_enabled:
+          type: boolean
+          description: GCPMarketplaceEnabled indicates if this version can be used
+            to create GCP Marketplace clusters.
+        rosa_enabled:
+          type: boolean
+          description: ROSAEnabled indicates whether this version can be used to create
+            ROSA clusters.
+        available_upgrades:
+          type: array
+          description: AvailableUpgrades is the list of versions this version can
+            be upgraded to.
+          items:
+            type: string
+        channel_group:
+          type: string
+          description: |-
+            ChannelGroup is the name of the group where this image belongs.
+            ChannelGroup is a mechanism to partition the images to different groups,
+            each image belongs to only a single group.
+        default:
+          type: boolean
+          description: |-
+            Indicates if this should be selected as the default version when a cluster is created
+            without specifying explicitly the version.
+        enabled:
+          type: boolean
+          description: Indicates if this version can be used to create clusters.
+        end_of_life_timestamp:
+          type: string
+          description: |-
+            EndOfLifeTimestamp is the date and time when the version will get to End of Life, using the
+            format defined in https://www.ietf.org/rfc/rfc3339.txt[RC3339].
+          format: date-time
+        hosted_control_plane_default:
+          type: boolean
+          description: |-
+            HostedControlPlaneDefault is a flag that indicates if this should be selected as the default version when a
+            HCP cluster is created without specifying explicitly the version.
+        hosted_control_plane_enabled:
+          type: boolean
+          description: HostedControlPlaneEnabled indicates whether this version can
+            be used to create HCP clusters.
+        image_overrides:
+          $ref: '#/components/schemas/ImageOverrides'
+        raw_id:
+          type: string
+          description: RawID is the id of the version - without channel group and
+            prefix.
+        release_image:
+          type: string
+          description: ReleaseImage contains the URI of Openshift release image for
+            amd64 architecture.
+        release_images:
+          $ref: '#/components/schemas/ReleaseImages'
+      description: Representation of an _OpenShift_ version.
+    VersionGate:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'VersionGate' if
+            this is a complete object or 'VersionGateLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        sts_only:
+          type: boolean
+          description: STSOnly indicates if this version gate is for STS clusters
+            only
+        creation_timestamp:
+          type: string
+          description: |-
+            CreationTimestamp is the date and time when the version gate was created,
+            format defined in https://www.ietf.org/rfc/rfc3339.txt[RC3339].
+          format: date-time
+        description:
+          type: string
+          description: Description of the version gate.
+        documentation_url:
+          type: string
+          description: DocumentationURL is the URL for the documentation of the version
+            gate.
+        label:
+          type: string
+          description: Label representing the version gate in OpenShift.
+        value:
+          type: string
+          description: Value represents the required value of the label.
+        version_raw_id_prefix:
+          type: string
+          description: VersionRawIDPrefix represents the versions prefix that the
+            gate applies to.
+        warning_message:
+          type: string
+          description: WarningMessage is a warning that will be displayed to the user
+            before they acknowledge the gate
+      description: Representation of an _OpenShift_ version gate.
+    VersionGateAgreement:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'VersionGateAgreement'
+            if this is a complete object or 'VersionGateAgreementLink' if it is just
+            a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        agreed_timestamp:
+          type: string
+          description: The time the user agreed to the version gate
+          format: date-time
+        version_gate:
+          $ref: '#/components/schemas/VersionGate'
+      description: VersionGateAgreement represents a version gate that the user agreed
+        to for a specific cluster.
+    WifAccessMethod:
+      type: string
+      enum:
+      - impersonate
+      - vm
+      - wif
+    WifConfig:
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will be 'WifConfig' if this
+            is a complete object or 'WifConfigLink' if it is just a link.
+        id:
+          type: string
+          description: Unique identifier of the object.
+        href:
+          type: string
+          description: Self link.
+        display_name:
+          type: string
+          description: The name OCM clients will display for this wif_config.
+        gcp:
+          $ref: '#/components/schemas/WifGcp'
+        organization:
+          $ref: '#/components/schemas/OrganizationLink'
+      description: Definition of an wif_config resource.
+    WifCredentialRequest:
+      properties:
+        secret_ref:
+          $ref: '#/components/schemas/WifSecretRef'
+        service_account_names:
+          type: array
+          items:
+            type: string
+    WifGcp:
+      properties:
+        impersonator_email:
+          type: string
+          description: 'This is the service account email that OCM will use to access
+            other SAs. '
+        project_id:
+          type: string
+          description: This represents the GCP project ID in which the wif resources
+            will be configured.
+        project_number:
+          type: string
+          description: This represents the GCP project number in which the wif resources
+            will be configured.
+        role_prefix:
+          type: string
+          description: Prefix for naming GCP custom roles configured.
+        service_accounts:
+          type: array
+          description: |-
+            The list of service accounts and their associated roles that will need to be
+            configured on the user's GCP project.
+          items:
+            $ref: '#/components/schemas/WifServiceAccount'
+        support:
+          $ref: '#/components/schemas/WifSupport'
+        workload_identity_pool:
+          $ref: '#/components/schemas/WifPool'
+    WifIdentityProvider:
+      properties:
+        allowed_audiences:
+          type: array
+          items:
+            type: string
+        identity_provider_id:
+          type: string
+        issuer_url:
+          type: string
+        jwks:
+          type: string
+    WifPool:
+      properties:
+        identity_provider:
+          $ref: '#/components/schemas/WifIdentityProvider'
+        pool_id:
+          type: string
+          description: The Id of the workload identity pool.
+        pool_name:
+          type: string
+          description: The display name of the workload identity pool.
+    WifRole:
+      properties:
+        permissions:
+          type: array
+          items:
+            type: string
+        predefined:
+          type: boolean
+        role_id:
+          type: string
+    WifSecretRef:
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+    WifServiceAccount:
+      properties:
+        access_method:
+          $ref: '#/components/schemas/WifAccessMethod'
+        credential_request:
+          $ref: '#/components/schemas/WifCredentialRequest'
+        osd_role:
+          type: string
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/WifRole'
+        service_account_id:
+          type: string
+    WifSupport:
+      properties:
+        principal:
+          type: string
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/WifRole'
+    WildcardPolicy:
+      type: string
+      description: Type of wildcard policy.
+      enum:
+      - WildcardsAllowed
+      - WildcardsDisallowed
+    Error:
+      type: object
+      properties:
+        kind:
+          type: string
+          description: Indicates the type of this object. Will always be 'Error'
+        id:
+          type: integer
+          description: Numeric identifier of the error.
+          format: int32
+        href:
+          type: string
+          description: Self link.
+        code:
+          type: string
+          description: "Globally unique code of the error, composed of the unique\
+            \ identifier of the API and the numeric identifier of the error. For example,\
+            \ for if the numeric identifier of the error is `93` and the identifier\
+            \ of the API is `clusters_mgmt` then the code will be `CLUSTERS-MGMT-93`."
+        reason:
+          type: string
+          description: Human readable description of the error.
+        details:
+          type: object
+          additionalProperties: true
+          description: Extra information about the error.
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
